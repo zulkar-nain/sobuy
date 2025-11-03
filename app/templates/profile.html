@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% from '_form_helpers.html' import render_field %}
+
+{% block title %}Your Profile - SoBuy{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+    <h2 class="text-2xl font-bold mb-4">Your Profile</h2>
+    <form method="POST" action="{{ url_for('main.profile') }}">
+        {{ form.hidden_tag() }}
+        <div class="mb-4">
+            <label class="block text-gray-700">Username</label>
+            <input type="text" value="{{ current_user.username }}" disabled class="mt-1 block w-full border-gray-300 rounded-md bg-gray-100">
+        </div>
+        {{ render_field(form.phone) }}
+        {{ render_field(form.address) }}
+        <div class="flex justify-end">
+            {{ form.submit(class_='bg-primary text-white px-4 py-2 rounded') }}
+        </div>
+    </form>
+
+    <div class="mt-8">
+        <h3 class="text-xl font-semibold mb-3">Order History</h3>
+        {% if orders %}
+            <ul class="space-y-3">
+                {% for o in orders %}
+                    <li class="border rounded p-3 flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold">Order #{{ o.id }}</div>
+                            <div class="text-sm text-gray-600">Placed: {{ o.created_at }}</div>
+                            <div class="text-sm">Amount: ৳{{ "%.2f"|format(o.total_amount) }}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="px-3 py-1 rounded bg-gray-100">{{ o.status }}</div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>You have no orders yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

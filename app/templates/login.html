@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% from '_form_helpers.html' import render_field %}
+
+{% block title %}Login - SoBuy{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center">
+    <div class="w-full max-w-md">
+        <form method="POST" action="{{ url_for('main.login') }}" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
+            {{ form.hidden_tag() }}
+            <h2 class="text-3xl font-bold text-center text-primary mb-8">Login to Your Account</h2>
+            
+            <div class="mb-4">
+                {{ render_field(form.username) }}
+            </div>
+            
+            <div class="mb-6">
+                {{ render_field(form.password) }}
+            </div>
+            
+            <div class="flex items-center justify-between">
+                {{ form.submit(class="bg-primary hover:bg-accent text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline cursor-pointer w-full") }}
+            </div>
+        </form>
+        <p class="text-center text-gray-500 text-xs">
+            Don't have an account? <a href="{{ url_for('main.register') }}" class="text-primary hover:underline">Sign Up</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

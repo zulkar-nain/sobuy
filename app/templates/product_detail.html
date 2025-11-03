@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - SoBuy{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow-lg rounded-lg overflow-hidden">
+    <div class="md:flex">
+        <!-- Product Image -->
+        <div class="md:w-1/2 p-6">
+            {%- set imgs = (product.image_url or '').split(',') -%}
+            <div class="mb-4">
+                <img src="{{ imgs[0] if imgs[0] else url_for('static', filename='images/placeholder.png') }}" alt="{{ product.name }}" class="w-full h-96 object-cover rounded">
+            </div>
+            <div class="flex space-x-3">
+                {% for img in imgs if img %}
+                    <img src="{{ img }}" class="w-20 h-20 object-cover rounded border cursor-pointer" alt="thumb">
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Product Details -->
+        <div class="md:w-1/2 p-8">
+            <h1 class="text-4xl font-bold text-primary mb-4">{{ product.name }}</h1>
+            <p class="text-gray-600 text-lg mb-6">{{ product.description }}</p>
+            
+            <div class="flex items-center justify-between mb-8">
+                <span class="text-4xl font-bold text-primary">${{ "%.2f"|format(product.price) }}</span>
+            </div>
+            
+            <!-- Add to Cart Form -->
+            <form action="{{ url_for('main.add_to_cart', product_id=product.id) }}" method="POST">
+                <div class="mb-4">
+                    <label class="block text-gray-700">Quantity</label>
+                    <input type="number" name="quantity" value="1" min="1" class="mt-1 block w-24 border-gray-300 rounded-md">
+                </div>
+
+                {% if product.colors %}
+                    {%- set colors = (product.colors or '').split(',') -%}
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">Select Color</label>
+                        <div class="flex space-x-3">
+                            {% for c in colors if c.strip() %}
+                                <label class="inline-flex items-center space-x-2">
+                                    <input type="radio" name="color" value="{{ c.strip() }}" class="form-radio">
+                                    {% if c.strip().startswith('#') %}
+                                        <span class="px-3 py-1 rounded" style="background:  {{ c.strip() }}; border: 1px solid #ddd;"></span>
+                                    {% else %}
+                                        <span class="px-3 py-1 rounded" style="border: 1px solid #ddd;">{{ c.strip() }}</span>
+                                    {% endif %}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <button id="add-to-cart-btn" type="submit" class="w-full bg-primary hover:bg-accent text-white font-bold py-3 px-6 rounded-lg transition text-lg">
+                    Add to Cart
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    // Thumbnail click -> swap main image
+    const thumbs = document.querySelectorAll('.cursor-pointer');
+    const mainImg = document.querySelector('.w-full.h-96');
+    thumbs.forEach(t => t.addEventListener('click', () => {
+        if(mainImg && t.src) mainImg.src = t.src;
+    }));
+
+    // Require color selection before enabling Add to Cart
+    const colorRadios = document.querySelectorAll('input[name="color"]');
+    const addBtn = document.getElementById('add-to-cart-btn');
+    if(colorRadios.length && addBtn){
+        // disable until one is selected
+        addBtn.disabled = true;
+        addBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+        colorRadios.forEach(r => r.addEventListener('change', () => {
+            if(document.querySelector('input[name="color"]:checked')){
+                addBtn.disabled = false;
+                addBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }));
+
+        // also guard on submit (in case JS changed)
+        const form = addBtn.closest('form');
+        if(form){
+            form.addEventListener('submit', function(e){
+                if(!document.querySelector('input[name="color"]:checked')){
+                    e.preventDefault();
+                    alert('Please select a color before adding to cart.');
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

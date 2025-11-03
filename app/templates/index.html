@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Home - SoBuy{% endblock %}
+
+{% block content %}
+<!-- Hero/Slider Section -->
+<div class="bg-gray-200 rounded-lg p-8 md:p-16 mb-12 text-center relative overflow-hidden" id="slider">
+    <!-- You will need JavaScript to make this an actual slider -->
+    <div class="slider-item active">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-primary mb-4">Discover Our New Collection</h1>
+        <p class="text-lg text-gray-600 mb-6">Modern, minimal, and made for you.</p>
+        <a href="#products" class="bg-primary text-white px-6 py-3 rounded-md hover:bg-accent transition text-lg">Shop Now</a>
+    </div>
+</div>
+
+<!-- Top Products Section -->
+<section id="products">
+    <h2 class="text-3xl font-bold text-center text-primary mb-8">Featured Products</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {% for product in products %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300">
+            <a href="{{ url_for('main.product_detail', product_id=product.id) }}">
+                {%- set imgs = (product.image_url or '').split(',') -%}
+                <img src="{{ imgs[0] if imgs[0] else url_for('static', filename='images/placeholder.png') }}" alt="{{ product.name }}" class="w-full h-56 object-cover">
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold text-primary mb-2">{{ product.name }}</h3>
+                    <p class="text-gray-700 font-bold text-2xl">৳{{ "%.2f"|format(product.price) }}</p>
+                </div>
+            </a>
+            <div class="px-6 pb-4">
+                <form action="{{ url_for('main.add_to_cart', product_id=product.id) }}" method="POST">
+                    <button type="submit" class="w-full bg-accent text-white py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">Add to Cart</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <p class="col-span-full text-center text-gray-500">No products found.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

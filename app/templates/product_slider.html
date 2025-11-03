@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{{ url_for('static', filename='css/tailwind.css') }}" rel="stylesheet">
+    <title>Product Slider</title>
+</head>
+<body>
+    <div class="relative w-full overflow-hidden">
+        <div class="slider">
+            {% for product in products %}
+                <div class="slide">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="w-full h-auto">
+                    <div class="absolute bottom-0 left-0 bg-black bg-opacity-50 text-white p-4">
+                        <h2 class="text-lg font-bold">{{ product.name }}</h2>
+                        <p class="text-sm">{{ product.description }}</p>
+                        <p class="text-xl font-semibold">{{ product.price }} BDT</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/slider.js') }}"></script>
+</body>
+</html>

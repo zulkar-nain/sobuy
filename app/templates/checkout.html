@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% from '_form_helpers.html' import render_field %}
+
+{% block title %}Checkout - SoBuy{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-4 max-w-2xl">
+    <h1 class="text-2xl font-bold mb-4">Checkout</h1>
+    <form method="POST" class="bg-white p-6 rounded shadow-md">
+        {{ form.hidden_tag() }}
+        <h2 class="text-xl font-semibold mb-4">Delivery Details</h2>
+        {{ render_field(form.name) }}
+        {{ render_field(form.address) }}
+        {{ render_field(form.phone) }}
+
+        <h2 class="text-xl font-semibold mb-4 mt-6">Payment</h2>
+        <div class="mb-4">
+            <label class="block text-gray-700">Select Payment Method</label>
+            <select name="payment_method" id="payment_method" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                <option value="cash_on_delivery">Cash on Delivery</option>
+                <option value="bkash">bKash</option>
+            </select>
+        </div>
+
+        <div id="bkash-section" class="hidden mb-4">
+            {{ render_field(form.trx_id) }}
+        </div>
+
+        <div class="mt-6 flex justify-between items-center">
+            <div class="text-lg font-bold">Total: ৳{{ "%.2f"|format(total_amount) }}</div>
+            {{ form.submit(class_='bg-primary text-white px-4 py-2 rounded') }}
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const paymentSelect = document.getElementById('payment_method');
+    const bkashSection = document.getElementById('bkash-section');
+    if(!paymentSelect) return;
+    function update(){
+        if(paymentSelect.value === 'bkash'){
+            bkashSection.classList.remove('hidden');
+        } else {
+            bkashSection.classList.add('hidden');
+        }
+    }
+    paymentSelect.addEventListener('change', update);
+    update();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+
+# Instance folder and DB
+/instance/
+*.db
+*.sqlite3
+
+# Environment files
+.env
+.env.local
+.env.*
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Static uploads (runtime)
+app/static/uploads/
+
+# Logs
+*.log

@@ -1,0 +1,17 @@
+<div style="font-family:system-ui, -apple-system, 'Segoe UI', Roboto; color:#333;">
+  <h2>New order #{{ order.id }}</h2>
+  <p>User: {{ user.username }} ({{ user.email }})</p>
+  <p><strong>Total:</strong> {{ order.total_amount }}</p>
+  <p><strong>Payment method:</strong> {{ order.payment_method }}</p>
+  <p><strong>Transaction ID:</strong> {{ order.trx_id or 'N/A' }}</p>
+  <p><strong>Placed at:</strong> {{ order.created_at }}</p>
+
+  <h3>Items</h3>
+  <ul>
+    {% for it in items %}
+      <li>{{ it.name }} x{{ it.quantity }} — {{ it.price }} {% if it.color %} (color: {{ it.color }}){% endif %}</li>
+    {% endfor %}
+  </ul>
+
+  <p>Manage orders in the admin dashboard.</p>
+</div>

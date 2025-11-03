@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{{ url_for('static', filename='css/tailwind.css') }}" rel="stylesheet">
+    <title>Top Products</title>
+</head>
+<body>
+    <div class="container mx-auto my-8">
+        <h2 class="text-2xl font-bold mb-4">Top Products</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for product in products %}
+                <div class="border rounded-lg overflow-hidden shadow-lg">
+                    {%- set imgs = (product.image_url or '').split(',') -%}
+                    <img src="{{ imgs[0] if imgs[0] else url_for('static', filename='images/placeholder.png') }}" alt="{{ product.name }}" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold">{{ product.name }}</h3>
+                        <p class="text-gray-700">{{ product.description }}</p>
+                        <p class="text-xl font-bold mt-2">${{ product.price }}</p>
+                        <a href="{{ url_for('main.add_to_cart', product_id=product.id) }}" class="mt-4 inline-block bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">Add to Cart</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

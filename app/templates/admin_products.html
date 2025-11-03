@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title or 'Manage Products' }} - SoBuy{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow-lg rounded-lg p-8">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-3xl font-bold text-primary">Manage Products</h2>
+        <a href="{{ url_for('main.upload_product') }}" class="bg-primary hover:bg-accent text-white font-bold py-2 px-4 rounded-lg">
+            + Add New Product
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Product Name</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Price</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for product in products %}
+                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                    <td class="py-3 px-4">{{ product.name }}</td>
+                    <td class="py-3 px-4">${{ "%.2f"|format(product.price) }}</td>
+                    <td class="py-3 px-4">
+                        <form action="\" method="GET" class="inline">
+                            <button type="submit" class="text-blue-500 hover:underline mr-4">Edit</button>
+                        </form>
+                        <form action="{{ url_for('main.delete_product', product_id=product.id) }}" method="POST" class="inline">
+                            <button type="submit" class="text-red-500 hover:underline">Delete</button>
+                        </form>
+                    
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center py-4">No products found. Add one to get started.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

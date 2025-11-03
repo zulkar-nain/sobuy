@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Upload Product - SoBuy{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center">
+    <div class="w-full max-w-lg">
+        <form method="POST" action="{{ url_for('main.upload_product') }}" enctype="multipart/form-data" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
+            {{ form.hidden_tag() }}
+            <h2 class="text-3xl font-bold text-center text-primary mb-8">Upload New Product</h2>
+            
+            <div class="mb-4">
+                {{ render_field(form.name) }}
+            </div>
+            
+            <div class="mb-4">
+                {{ render_field(form.description) }}
+            </div>
+
+            <div class="mb-4">
+                {{ render_field(form.price) }}
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Product Images</label>
+                <input type="file" name="image" multiple class="w-full text-sm text-gray-500" />
+                <p class="text-sm text-gray-500 mt-1">Select one or more images (Ctrl/Cmd to select multiple).</p>
+            </div>
+
+            <div class="mb-4">
+                {{ render_field(form.colors) }}
+            </div>
+            
+            <div class="flex items-center justify-between">
+                {{ form.submit(class="bg-primary hover:bg-accent text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline cursor-pointer w-full") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

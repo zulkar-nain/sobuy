@@ -1,0 +1,10 @@
+Hello {{ username or 'Customer' }},
+
+Your SoBuy signup code is: {{ otp }}
+
+This code will expire at {{ expires }} UTC.
+
+If you did not request this code, please ignore this email.
+
+Thanks,
+SoBuy Team

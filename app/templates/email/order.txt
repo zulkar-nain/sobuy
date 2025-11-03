@@ -1,0 +1,14 @@
+New order #{{ order.id }}
+
+User: {{ user.username }} ({{ user.email }})
+Total: {{ order.total_amount }}
+Payment method: {{ order.payment_method }}
+Transaction ID: {{ order.trx_id or 'N/A' }}
+Placed at: {{ order.created_at }}
+
+Items:
+{% for it in items %}
+- {{ it.name }} x{{ it.quantity }} @ {{ it.price }} {% if it.color %}(color: {{ it.color }}){% endif %}
+{% endfor %}
+
+View the admin dashboard to manage this order.
