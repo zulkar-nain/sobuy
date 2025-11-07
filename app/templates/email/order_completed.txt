@@ -1,0 +1,10 @@
+Hello {{ user.username }},
+
+Your order #{{ order.id }} has been marked as completed. Thank you for shopping with SoBuy!
+
+Order ID: {{ order.id }}
+Total amount: ৳{{ "%.2f"|format(order.total_amount) }}
+
+We hope to serve you again soon.
+
+— The SoBuy Team

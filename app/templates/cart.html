@@ -36,12 +36,96 @@
         </tbody>
     </table>
     </div>
-    <div class="mt-6 flex justify-end">
-        <a href="{{ url_for('main.checkout') }}" class="bg-primary text-white px-6 py-2 rounded">Proceed to Checkout</a>
+    <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-2">Delivery Options</h3>
+    <form method="POST" class="bg-gray-50 p-4 rounded" id="delivery-form" autocomplete="off">
+            {% if fees %}
+                {% for f in fees %}
+                    <label class="flex items-center gap-3 mb-2 delivery-option" data-key="{{ f.key }}" data-amount="{{ "%.2f"|format(f.amount) }}">
+                        <input type="radio" name="delivery_option" value="{{ f.key }}" {% if selected and selected['key'] == f.key %}checked{% endif %} />
+                        <span class="font-medium">{{ f.label }}</span>
+                        <span class="ml-2 text-gray-600">(৳{{ "%.2f"|format(f.amount) }})</span>
+                    </label>
+                {% endfor %}
+            {% else %}
+                <p class="text-sm text-gray-500">No delivery options configured. Please contact support.</p>
+            {% endif %}
+            <div class="mt-4 text-right">
+                <button type="submit" class="bg-primary text-white px-6 py-2 rounded">Proceed to Checkout</button>
+            </div>
+        </form>
+    </div>
+    <div class="mt-4 bg-white p-4 rounded shadow-sm w-full max-w-md">
+        <div class="flex justify-between mb-2"><span class="text-sm text-gray-600">Subtotal</span><span id="subtotal-display">৳{{ "%.2f"|format(total_amount) }}</span></div>
+        <div class="flex justify-between mb-2"><span class="text-sm text-gray-600">Delivery</span><span id="delivery-display">{% if selected %}৳{{ "%.2f"|format(selected.amount) }}{% else %}৳0.00{% endif %}</span></div>
+        <div class="border-t pt-2 flex justify-between font-semibold text-lg"><span>Total</span><span id="grand-total-display">৳{% if selected %}{{ "%.2f"|format(total_amount + selected.amount) }}{% else %}{{ "%.2f"|format(total_amount) }}{% endif %}</span></div>
     </div>
     {% else %}
     <p>Your cart is empty.</p>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // if server has no selected delivery, force radios to be unchecked to avoid browser/back-cache restoring a choice
+    const serverHasSelection = {{ (selected is not none) | tojson }};
+    if (!serverHasSelection) {
+        document.querySelectorAll('input[name="delivery_option"]').forEach(r => r.checked = false);
+    }
+    const form = document.getElementById('delivery-form');
+    if (!form) return;
+
+    // try find CSRF token if present on page
+    const csrfInput = document.querySelector('input[name="csrf_token"]');
+    const csrf = csrfInput ? csrfInput.value : '';
+
+    function showError(msg) {
+        // simple alert for now; can be replaced with toast UI
+        alert(msg);
+    }
+
+    function updateTotals(subtotal, delivery, grand) {
+        const subEl = document.getElementById('subtotal-display');
+        const delEl = document.getElementById('delivery-display');
+        const grandEl = document.getElementById('grand-total-display');
+        if (subEl) subEl.textContent = '৳' + (Number(subtotal).toFixed(2));
+        if (delEl) delEl.textContent = '৳' + (Number(delivery).toFixed(2));
+        if (grandEl) grandEl.textContent = '৳' + (Number(grand).toFixed(2));
+    }
+
+    // handle change on radio inputs via event delegation
+    form.addEventListener('change', function (e) {
+        const target = e.target;
+        if (target && target.name === 'delivery_option') {
+            const key = target.value;
+            // send AJAX to persist selection and get updated totals
+            fetch("{{ url_for('main.set_delivery_ajax') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrf
+                },
+                body: JSON.stringify({key: key})
+            }).then(r => r.json().then(j => ({status: r.status, json: j}))).then(result => {
+                if (!result || result.status !== 200 || !result.json) {
+                    showError('Failed to update delivery option.');
+                    return;
+                }
+                const data = result.json;
+                if (!data.success) {
+                    showError(data.error || 'Failed to update delivery option.');
+                    return;
+                }
+                updateTotals(data.subtotal, data.delivery_amount, data.grand_total);
+            }).catch(err => {
+                console.error(err);
+                showError('Unexpected error while updating delivery.');
+            });
+        }
+    });
+});
+</script>
 {% endblock %}
 

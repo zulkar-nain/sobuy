@@ -1,9 +1,15 @@
 Flask==2.2.2
-Flask-SQLAlchemy==2.5.1
+Flask-SQLAlchemy>=3.0.0
 Flask-WTF==1.0.0
 Flask-Login==0.6.2
 WTForms==3.0.1
+python-dotenv==1.0.0
 # note: sqlite and tailwind entries removed as pip packages; system sqlite is used
 Jinja2==3.0.3
 Werkzeug==2.2.2
 gunicorn==20.1.0
+sib_api_v3_sdk==7.6.0
+Flask-Migrate==4.0.4
+Pillow==10.1.0
+markdown==3.4.4
+bleach==6.0.0

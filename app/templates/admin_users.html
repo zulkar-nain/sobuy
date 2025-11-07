@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users - Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-4">Registered Users</h2>
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="text-left text-gray-600 border-b">
+                <th class="py-2">Username</th>
+                <th class="py-2">Email</th>
+                <th class="py-2">Role</th>
+                <th class="py-2">Status</th>
+                <th class="py-2">Joined</th>
+                <th class="py-2">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-3">{{ u.username }}</td>
+                <td class="py-3">{{ u.email or '—' }}</td>
+                <td class="py-3">{{ u.role }}</td>
+                <td class="py-3">{% if u.is_banned %}<span class="text-red-600 font-semibold">Banned</span>{% else %}<span class="text-green-600">Active</span>{% endif %}</td>
+                <td class="py-3">{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '—' }}</td>
+                <td class="py-3">
+                    {% if not u.is_admin %}
+                        {% if not u.is_banned %}
+                        <form action="{{ url_for('main.admin_ban_user', user_id=u.id) }}" method="post" style="display:inline">
+                            <button class="bg-red-600 text-white px-3 py-1 rounded text-sm">Ban</button>
+                        </form>
+                        {% else %}
+                        <form action="{{ url_for('main.admin_unban_user', user_id=u.id) }}" method="post" style="display:inline">
+                            <button class="bg-green-600 text-white px-3 py-1 rounded text-sm">Unban</button>
+                        </form>
+                        {% endif %}
+                        <form action="{{ url_for('main.admin_delete_user', user_id=u.id) }}" method="post" style="display:inline" onsubmit="return confirm('Delete user {{ u.username }}? This action cannot be undone.')">
+                            <button class="bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm ml-2">Delete</button>
+                        </form>
+                    {% else %}
+                        <span class="text-sm text-gray-500">(admin)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

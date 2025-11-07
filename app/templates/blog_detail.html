@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - SoBuy{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded shadow p-6">
+    <h1 class="text-3xl font-bold text-primary">{{ post.title }}</h1>
+    <div class="article-meta">
+        {% if author_name %}<span>By <strong>{{ author_name }}</strong></span> • {% endif %}
+        <span>Published: {{ post.created_at.strftime('%Y-%m-%d') if post.created_at else '—' }}</span>
+        {% if reading_minutes %} • <span class="reading-time">{{ reading_minutes }} min read</span>{% endif %}
+    </div>
+    {% if post.image_url %}
+    <img src="{{ post.image_url }}" alt="{{ post.title }}" class="w-full h-64 object-cover rounded mb-4">
+    {% endif %}
+    <div class="article-content prose max-w-none">{{ post_html|safe }}</div>
+
+    <div class="mt-6 flex items-center gap-4">
+        <div>
+            {% if not current_user.is_authenticated %}
+                <a href="{{ url_for('main.login') }}" class="bg-gray-200 px-3 py-1 rounded text-sm inline-flex items-center">❤ {{ like_count }}</a>
+            {% else %}
+                <form method="POST" action="{{ url_for('main.toggle_like', post_id=post.id) }}">
+                    <button type="submit" class="bg-accent text-white px-3 py-1 rounded text-sm">{% if user_liked %}Unlike{% else %}Like{% endif %} • {{ like_count }}</button>
+                </form>
+            {% endif %}
+        </div>
+        <div class="text-sm text-gray-500">Visits: {{ visit_count or 0 }}</div>
+    </div>
+
+    {% if toc_html %}
+        <div class="mb-4">
+            <h4 class="font-semibold">Contents</h4>
+            <div class="text-sm text-gray-600">{{ toc_html|safe }}</div>
+        </div>
+    {% endif %}
+
+    <hr class="my-6">
+
+    <h3 class="text-xl font-semibold mb-3">Comments</h3>
+    {% if comments %}
+        <ul class="space-y-4">
+            {% for c in comments %}
+            <li class="border rounded p-3">
+                <div class="text-sm text-gray-700">{{ c.body }}</div>
+                <div class="text-xs text-gray-400 mt-2">By {{ c.username }} • {{ c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '' }}</div>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-sm text-gray-500">No comments yet.</p>
+    {% endif %}
+
+    <div class="mt-6">
+        {% if current_user.is_authenticated %}
+            <form method="POST" action="{{ url_for('main.post_comment', post_id=post.id) }}">
+                {{ form.hidden_tag() }}
+                <div>
+                    {{ form.body(class_='w-full border rounded p-2') }}
+                </div>
+                <div class="mt-2">
+                    {{ form.submit(class_='bg-primary text-white px-4 py-2 rounded') }}
+                </div>
+            </form>
+        {% else %}
+            <p class="text-sm">Please <a href="{{ url_for('main.login') }}" class="text-accent">sign in</a> to comment or like.</p>
+        {% endif %}
+    </div>
+            <div class="lg:grid lg:grid-cols-3 lg:gap-8">
+                        <main class="lg:col-span-2">
+                            <div class="mt-8">
+                                <div class="border rounded-lg p-4 bg-white">
+                                    <h3 class="text-xl font-semibold mb-3">You may also like</h3>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                                        {% for r in related %}
+                                            <div class="flex gap-3 items-start">
+                                                                    {% if r.image_url %}
+                                                                        <a href="{{ url_for('main.blog_detail', post_id=r.id) }}" class="w-24 h-16 flex-shrink-0 overflow-hidden rounded">
+                                                                            {% set rel = r.image_url.strip() %}
+                                                                            {% if rel.startswith('/') or rel.startswith('http') %}
+                                                                                <img src="{{ rel }}" alt="{{ r.title }}" class="w-full h-full object-cover">
+                                                                            {% else %}
+                                                                                <img src="{{ url_for('static', filename='uploads/' + rel) }}" alt="{{ r.title }}" class="w-full h-full object-cover">
+                                                                            {% endif %}
+                                                                        </a>
+                                                                    {% endif %}
+                                                <div>
+                                                    <a href="{{ url_for('main.blog_detail', post_id=r.id) }}" class="font-medium block">{{ r.title }}</a>
+                                                    <p class="text-sm text-gray-600">{{ r.created_at.strftime('%b %d, %Y') }}</p>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </main>
+
+                                <aside class="mt-8 lg:mt-0 lg:col-span-1 lg:self-start">
+                                    <div class="lg:sticky lg:top-20 space-y-6">
+                                <div class="bg-white border rounded-lg p-4">
+                                    <h4 class="text-lg font-semibold">Featured products</h4>
+                                    <div class="mt-3 space-y-3">
+                                        {% for p in featured_products %}
+                                <div class="flex items-center gap-3 p-3 rounded-lg bg-white border hover:shadow-lg transition transform hover:-translate-y-0.5">
+                                    <a href="{{ url_for('main.product_detail', product_id=p.id) }}" class="w-16 h-16 flex-shrink-0 rounded overflow-hidden bg-gray-50 flex items-center justify-center">
+                                        {% set img = (p.image_url.split(',')|first) if p.image_url else None %}
+                                        {% if img %}
+                                            {% set rel = img.strip() %}
+                                            {% if rel.startswith('/') or rel.startswith('http') %}
+                                                <img src="{{ rel }}" alt="{{ p.name }}" class="w-full h-full object-cover">
+                                            {% else %}
+                                                <img src="{{ url_for('static', filename='uploads/' + rel) }}" alt="{{ p.name }}" class="w-full h-full object-cover">
+                                            {% endif %}
+                                        {% else %}
+                                            <div class="text-xs text-gray-400">No image</div>
+                                        {% endif %}
+                                    </a>
+                                    <div class="flex-1 min-w-0">
+                                        <a href="{{ url_for('main.product_detail', product_id=p.id) }}" class="font-medium block truncate text-gray-800">{{ p.name }}</a>
+                                        <div class="flex items-center justify-between mt-1">
+                                            <div class="text-sm text-gray-600">৳ {{ '%.2f'|format(p.price or 0) }}</div>
+                                            <a href="{{ url_for('main.product_detail', product_id=p.id) }}" class="ml-3 inline-flex items-center px-2 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs rounded">View</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                        {% else %}
+                                            <p class="text-sm text-gray-600">No featured products yet.</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <a href="{{ url_for('main.blog_list') }}" class="inline-block text-sm text-blue-600">View all posts →</a>
+                                </div>
+                            </div>
+                        </aside>
+            </div>
+</div>
+{% endblock %}

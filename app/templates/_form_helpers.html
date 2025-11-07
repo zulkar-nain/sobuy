@@ -1,13 +1,27 @@
 {% macro render_field(field) %}
   <div class="mb-4">
-    {{ field.label(class_='block text-gray-700 text-sm font-bold mb-2') }}
-    {{ field(class_='mt-1 block w-full border-gray-300 rounded-md shadow-sm') }}
-    {% if field.errors %}
-      <ul class="text-red-600 text-sm mt-1">
-      {% for err in field.errors %}
-        <li>{{ err }}</li>
-      {% endfor %}
-      </ul>
-    {% endif %}
+    {%- if field.type == 'BooleanField' -%}
+      <label class="inline-flex items-center text-sm">
+        {{ field(class_='form-checkbox h-4 w-4 text-primary') }}
+        <span class="ml-2 text-gray-700">{{ field.label.text }}</span>
+      </label>
+      {% if field.errors %}
+        <ul class="text-red-600 text-sm mt-1">
+        {% for err in field.errors %}
+          <li>{{ err }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {%- else -%}
+      {{ field.label(class_='block text-gray-700 text-sm font-bold mb-2') }}
+      {{ field(class_='mt-1 block w-full border-gray-300 rounded-md shadow-sm') }}
+      {% if field.errors %}
+        <ul class="text-red-600 text-sm mt-1">
+        {% for err in field.errors %}
+          <li>{{ err }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {%- endif -%}
   </div>
 {%- endmacro %}

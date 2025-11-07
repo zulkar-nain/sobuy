@@ -6,9 +6,44 @@
 {% block content %}
 <div class="flex items-center justify-center">
     <div class="w-full max-w-lg">
-        <form method="POST" action="{{ url_for('main.upload_product') }}" enctype="multipart/form-data" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
+        <form method="POST" action="{{ url_for('main.edit_product', product_id=product.id) if product else url_for('main.upload_product') }}" enctype="multipart/form-data" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
             {{ form.hidden_tag() }}
-            <h2 class="text-3xl font-bold text-center text-primary mb-8">Upload New Product</h2>
+            <h2 class="text-3xl font-bold text-center text-primary mb-8">{{ 'Edit Product' if product else 'Upload New Product' }}</h2>
+            {% if form.errors %}
+            <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+                <strong>There were errors with your submission:</strong>
+                <ul class="mt-2 list-disc list-inside text-sm">
+                {% for field, errs in form.errors.items() %}
+                    {% for e in errs %}
+                        <li>{{ field }}: {{ e }}</li>
+                    {% endfor %}
+                {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            {% if product and product.image_url %}
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Current Images:</label>
+                <div class="flex flex-wrap gap-2">
+                    {% for image in product.image_url.split(',') %}
+                        <div class="flex flex-col items-center image-block" data-image="{{ image }}">
+                            <img src="{{ image }}" alt="Product Image" class="w-24 h-24 object-cover rounded-md border border-gray-300">
+                            <div class="flex items-center gap-2 mt-1">
+                                <label class="text-xs">
+                                    <input type="checkbox" name="remove_image" value="{{ image }}"> Remove
+                                </label>
+                                <button type="button" class="delete-image-btn text-xs text-red-500 ml-2" data-image="{{ image }}" data-product-id="{{ product.id }}">Delete now</button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-3">
+                    <!-- Button to submit the form and remove selected images -->
+                    <button type="submit" name="remove_selected" value="1" class="bg-red-500 hover:bg-red-600 text-white text-sm font-medium py-2 px-3 rounded">Remove selected images</button>
+                    <span class="text-xs text-gray-500 ml-3">or use "Delete now" next to each image to remove immediately.</span>
+                </div>
+            </div>
+            {% endif %}
             
             <div class="mb-4">
                 {{ render_field(form.name) }}
@@ -27,6 +62,10 @@
                 <input type="file" name="image" multiple class="w-full text-sm text-gray-500" />
                 <p class="text-sm text-gray-500 mt-1">Select one or more images (Ctrl/Cmd to select multiple).</p>
             </div>
+            
+            <div class="mb-4">
+                {{ render_field(form.status) }}
+            </div>
 
             <div class="mb-4">
                 {{ render_field(form.colors) }}
@@ -38,4 +77,80 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // find CSRF token from the form
+    const csrfInput = document.querySelector('input[name="csrf_token"]');
+    const csrf = csrfInput ? csrfInput.value : '';
+
+    // small toast helper
+    const toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    toastContainer.style.position = 'fixed';
+    toastContainer.style.right = '20px';
+    toastContainer.style.top = '20px';
+    toastContainer.style.zIndex = '9999';
+    document.body.appendChild(toastContainer);
+
+    function showToast(message, type='info', timeout=3000) {
+        const el = document.createElement('div');
+        el.className = 'toast-item';
+        el.style.minWidth = '200px';
+        el.style.marginBottom = '8px';
+        el.style.padding = '10px 14px';
+        el.style.borderRadius = '6px';
+        el.style.color = '#fff';
+        el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.12)';
+        el.style.fontSize = '13px';
+        if (type === 'success') el.style.background = '#16a34a';
+        else if (type === 'error') el.style.background = '#dc2626';
+        else el.style.background = '#334155';
+        el.textContent = message;
+        toastContainer.appendChild(el);
+        setTimeout(() => {
+            el.style.transition = 'opacity 300ms ease';
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 300);
+        }, timeout);
+    }
+
+    function postDelete(productId, image, btn) {
+        if (!confirm('Delete this image now? This will remove it from the product and delete the file from disk.')) return;
+        btn.disabled = true;
+        fetch('{{ url_for("main.admin_delete_image") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf
+            },
+            body: JSON.stringify({product_id: productId, image: image})
+        }).then(r => r.json()).then(data => {
+            if (data && data.ok) {
+                // remove the image block from the DOM
+                const block = btn.closest('.image-block');
+                if (block) block.remove();
+                showToast('Image deleted.', 'success');
+            } else {
+                showToast('Failed to delete image: ' + (data.error || 'unknown'), 'error');
+                btn.disabled = false;
+            }
+        }).catch(err => {
+            console.error(err);
+            showToast('Unexpected error deleting image', 'error');
+            btn.disabled = false;
+        });
+    }
+
+    document.querySelectorAll('.delete-image-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            const image = this.getAttribute('data-image');
+            const productId = this.getAttribute('data-product-id');
+            postDelete(productId, image, this);
+        });
+    });
+});
+</script>
 {% endblock %}

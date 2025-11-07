@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Account Banned{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto bg-white shadow rounded p-8 text-center">
+    <h1 class="text-2xl font-bold text-red-600 mb-4">Account Banned</h1>
+    <p class="text-gray-700 mb-4">Your account has been suspended. If you believe this is a mistake, please contact our support team for assistance.</p>
+    <p class="text-gray-700">Email: <a href="mailto:help@teamsobuy.shop" class="text-primary">help@teamsobuy.shop</a></p>
+    <div class="mt-6">
+        <a href="{{ url_for('main.index') }}" class="inline-block mt-4 bg-primary text-white px-4 py-2 rounded">Return to home</a>
+    </div>
+</div>
+{% endblock %}

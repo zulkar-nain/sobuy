@@ -1,0 +1,10 @@
+Hello {{ user.username }},
+
+Good news — your order #{{ order.id }} is on the way.
+
+Order ID: {{ order.id }}
+Total amount: ৳{{ "%.2f"|format(order.total_amount) }}
+
+You can expect delivery soon. If you have questions, reply to this email.
+
+Thanks for shopping with SoBuy!

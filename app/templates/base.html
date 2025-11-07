@@ -3,8 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {# Multiple favicon sizes for better cross-device support #}
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon-180x180.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
     <title>{% block title %}SoBuy{% endblock %}</title>
+    {# SEO meta defaults - can be overridden by pages using blocks #}
+    <meta name="description" content="{% block meta_description %}Shop genuine leather wallets and moneybags at SoBuy — handcrafted, durable designs and fast shipping.{% endblock %}">
+    <link rel="canonical" href="{% block canonical %}{{ request.url }}{% endblock %}" />
+
+    {# Default og_image block so self.og_image() is always available; pages can override this block #}
+    {% block og_image %}{% endblock %}
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="SoBuy">
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{% block og_url %}{{ request.url }}{% endblock %}">
+    <meta property="og:image" content="{{ self.og_image() }}">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ self.title() }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ self.meta_description() }}{% endblock %}">
+    <meta name="twitter:image" content="{{ self.og_image() }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts for improved reading: Inter for UI, Merriweather for article body -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -20,16 +49,32 @@
     <style>
         .slider-item { display: none; }
         .slider-item.active { display: block; }
+        /* Article / blog typography improvements */
+        .article-content { max-width: 70ch; margin: 0 auto; font-family: 'Merriweather', Georgia, serif; color: #0f172a; line-height: 1.75; font-size: 1.05rem; }
+        .article-content p { margin: 1em 0; }
+        .article-content h1, .article-content h2, .article-content h3 { font-family: 'Merriweather', Georgia, serif; margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2; }
+        .article-content h1 { font-size: 2rem; }
+        .article-content h2 { font-size: 1.5rem; }
+        .article-content h3 { font-size: 1.25rem; }
+        .article-content img { max-width: 100%; height: auto; display: block; margin: 1em auto; border-radius: 6px; }
+        .article-meta { color: #6b7280; font-size: 0.95rem; margin-bottom: 1rem; }
+        blockquote.article-quote { border-left: 4px solid #cbd5e1; padding-left: 1rem; color: #374151; font-style: italic; margin: 1.25em 0; }
+        pre.article-code { background: #0f172a; color: #f8fafc; padding: 1rem; border-radius: 6px; overflow: auto; }
+        .reading-time { color: #6b7280; font-size: 0.95rem; }
+    /* UI font for nav and buttons */
+    body, button, input, select, textarea { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 text-gray-800">
     <header class="bg-white shadow-sm sticky top-0 z-50">
-        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+        <nav class="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <a href="{{ url_for('main.index') }}" class="text-2xl font-bold text-primary">SoBuy</a>
-            <div class="flex items-center space-x-6">
+
+            <div class="flex items-center space-x-4">
+                <div class="hidden md:flex items-center space-x-6">
                 <a href="{{ url_for('main.index') }}" class="text-gray-600 hover:text-primary transition">Home</a>
                 <a href="{{ url_for('main.cart') }}" class="text-gray-600 hover:text-primary transition">Cart</a>
-                
+                <a href="{{ url_for('main.blog_list') }}" class="text-gray-600 hover:text-primary transition">Blog</a>
                 {% if current_user.is_authenticated %}
                     {% if current_user.is_admin %}
                         <a href="{{ url_for('main.admin_dashboard') }}" class="text-gray-600 hover:text-primary transition">Dashboard</a>
@@ -48,10 +93,39 @@
                     </div>
                 {% else %}
                     <a href="{{ url_for('main.register') }}" class="text-gray-600 hover:text-primary transition">Sign Up</a>
-                    <a href="{{ url_for('main.login') }}" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-accent transition">Login</a>
+                    <a href="{{ url_for('main.login') }}" class="bg-primary text-white px-3 py-2 rounded-md hover:bg-accent transition">Login</a>
                 {% endif %}
             </div>
+
+            <!-- Mobile menu button -->
+            <div class="md:hidden">
+                <button type="button" aria-label="Open menu" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="p-2 rounded-md text-gray-700 hover:bg-gray-100">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
         </nav>
+
+        <!-- Mobile stacked menu (hidden by default) -->
+        <div id="mobile-menu" class="md:hidden hidden bg-white border-b">
+            <div class="px-4 pt-2 pb-4 space-y-2">
+                <!-- mobile menu actions -->
+                <a href="{{ url_for('main.index') }}" class="block text-gray-700 px-2 py-2 rounded hover:bg-gray-50">Home</a>
+                <a href="{{ url_for('main.cart') }}" class="block text-gray-700 px-2 py-2 rounded hover:bg-gray-50">Cart</a>
+                <a href="{{ url_for('main.blog_list') }}" class="block text-gray-700 px-2 py-2 rounded hover:bg-gray-50">Blog</a>
+                {% if current_user.is_authenticated %}
+                    {% if current_user.is_admin %}
+                        <a href="{{ url_for('main.admin_dashboard') }}" class="block text-gray-700 px-2 py-2 rounded hover:bg-gray-50">Dashboard</a>
+                    {% endif %}
+                    <a href="{{ url_for('main.profile') }}" class="block text-gray-700 px-2 py-2 rounded hover:bg-gray-50">Profile</a>
+                    <a href="{{ url_for('main.profile') }}#orders" class="block text-gray-700 px-2 py-2 rounded hover:bg-gray-50">Orders</a>
+                    <a href="{{ url_for('main.change_password') }}" class="block text-gray-700 px-2 py-2 rounded hover:bg-gray-50">Change password</a>
+                    <a href="{{ url_for('main.logout') }}" class="block text-red-600 px-2 py-2 rounded hover:bg-gray-50">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('main.register') }}" class="block text-gray-700 px-2 py-2 rounded hover:bg-gray-50">Sign Up</a>
+                    <a href="{{ url_for('main.login') }}" class="block bg-primary text-white px-3 py-2 rounded-md hover:bg-accent">Login</a>
+                {% endif %}
+            </div>
+        </div>
     </header>
 
     <main class="container mx-auto px-6 py-8 flex-grow">
@@ -67,9 +141,67 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-white mt-12 mt-auto">
-        <div class="container mx-auto px-6 py-6 text-center text-gray-500">
-            <p>&copy; 2025 SoBuy. All rights reserved.</p>
+    <footer class="mt-12 mt-auto bg-gradient-to-t from-gray-900 via-gray-800 to-gray-900 text-white">
+        <div class="container mx-auto px-6 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="space-y-3">
+                    <a href="{{ url_for('main.index') }}" class="inline-block text-2xl font-bold text-white">SoBuy</a>
+                    <p class="text-sm text-gray-300">Modern, minimal products curated with care. Fast shipping and friendly support.</p>
+                    <div class="flex items-center space-x-3 mt-3">
+                        <img src="{{ url_for('static', filename='images/favicon-32.png') }}" alt="SoBuy" class="w-8 h-8 rounded">
+                        <span class="text-xs text-gray-400">Made with ♥ in Bangladesh</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="font-semibold mb-3">Quick links</h5>
+                    <ul class="space-y-2 text-gray-300 text-sm">
+                        <li><a class="hover:text-white" href="{{ url_for('main.index') }}">Home</a></li>
+                        <li><a class="hover:text-white" href="#products">Products</a></li>
+                        <li><a class="hover:text-white" href="{{ url_for('main.cart') }}">Cart</a></li>
+                        <li><a class="hover:text-white" href="{{ url_for('main.login') }}">Login</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="font-semibold mb-3">Contact</h5>
+                    <p class="text-sm text-gray-300">Email: <a class="text-gray-200 underline" href="mailto:info@teamsobuy.shop">info@teamsobuy.shop</a></p>
+                    <p class="text-sm text-gray-300 mt-2">Dhaka, Bangladesh</p>
+                    <p class="text-sm text-gray-400 mt-4">Business hours: Mon–Fri, 9am–6pm</p>
+                </div>
+
+                <div>
+                    <h5 class="font-semibold mb-3">Newsletter</h5>
+                    <p class="text-sm text-gray-300">Subscribe for new products and offers.</p>
+                    <form action="{{ url_for('main.subscribe_newsletter') }}" method="post" class="mt-3 flex">
+                        {{ csrf_field() if false }}
+                        <input aria-label="Email" type="email" name="email" placeholder="you@example.com" required class="w-full px-3 py-2 rounded-l bg-gray-700 text-sm text-white placeholder-gray-400 border border-gray-600 focus:outline-none" />
+                        <button type="submit" class="bg-primary text-white px-4 py-2 rounded-r hover:bg-white hover:text-primary transition">Subscribe</button>
+                    </form>
+                    <div class="flex items-center space-x-3 mt-4">
+                        <a href="#" aria-label="Facebook" class="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-blue-600 transition text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12.07C22 6.48 17.52 2 11.93 2S2 6.48 2 12.07c0 4.99 3.66 9.12 8.44 9.93v-7.03H8.1v-2.9h2.34V9.41c0-2.31 1.37-3.58 3.46-3.58.99 0 2.02.18 2.02.18v2.22h-1.13c-1.12 0-1.47.7-1.47 1.42v1.7h2.5l-.4 2.9h-2.1v7.03C18.34 21.19 22 17.06 22 12.07z"/></svg>
+                        </a>
+                        <a href="#" aria-label="Instagram" class="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-pink-500 transition text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" stroke-width="1.5"></rect><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        </a>
+                        <a href="#" aria-label="TikTok" class="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-white transition text-white hover:text-black">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 8v8.5A4.5 4.5 0 1013.5 12V9h3V6h-3V2H9v6z"/></svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 border-t border-gray-800 pt-6 text-center text-sm text-gray-400">
+                <div class="flex flex-col md:flex-row md:justify-between items-center gap-3">
+                    <div>&copy; 2025 SoBuy. All rights reserved.</div>
+                    <div class="space-x-4">
+                        <a class="hover:text-white" href="#">Privacy</a>
+                        <a class="hover:text-white" href="#">Terms</a>
+                        <a class="hover:text-white" href="#">Help</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </footer>
 

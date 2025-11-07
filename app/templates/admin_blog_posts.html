@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Blog Posts - SoBuy{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded shadow p-6">
+    <h2 class="text-2xl font-bold text-primary mb-4">Manage Blog Posts</h2>
+    <div class="mb-4">
+        <a href="{{ url_for('main.admin_create_blog') }}" class="bg-primary text-white px-4 py-2 rounded">+ New Post</a>
+    </div>
+    {% if posts %}
+        <div class="overflow-x-auto">
+        <table class="min-w-full table-auto">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="px-4 py-2 text-left">ID</th>
+                    <th class="px-4 py-2 text-left">Title</th>
+                    <th class="px-4 py-2 text-left">Status</th>
+                    <th class="px-4 py-2 text-left">Visits</th>
+                    <th class="px-4 py-2 text-left">Comments</th>
+                    <th class="px-4 py-2 text-left">Likes</th>
+                    <th class="px-4 py-2 text-left">When</th>
+                    <th class="px-4 py-2 text-left">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for row in posts %}
+                <tr class="border-b">
+                    <td class="px-4 py-2">#{{ row.post.id }}</td>
+                    <td class="px-4 py-2">{{ row.post.title }}</td>
+                    <td class="px-4 py-2">{{ row.post.status }}</td>
+                    <td class="px-4 py-2">{{ row.visits }}</td>
+                    <td class="px-4 py-2">{{ row.comments }}</td>
+                    <td class="px-4 py-2">{{ row.likes }}</td>
+                    <td class="px-4 py-2">{{ row.post.created_at.strftime('%Y-%m-%d') if row.post.created_at else '—' }}</td>
+                    <td class="px-4 py-2">
+                        <a href="{{ url_for('main.admin_edit_blog', post_id=row.post.id) }}" class="text-sm text-blue-600 mr-2">Edit</a>
+                        <form method="POST" action="{{ url_for('main.admin_delete_blog', post_id=row.post.id) }}" style="display:inline">
+                            <button type="submit" class="text-sm text-red-600">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    {% else %}
+        <p>No blog posts found.</p>
+    {% endif %}
+</div>
+{% endblock %}

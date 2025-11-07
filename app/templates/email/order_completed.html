@@ -1,0 +1,9 @@
+<div style="font-family:system-ui, -apple-system, 'Segoe UI', Roboto; color:#333;">
+  <h2>Order #{{ order.id }} completed</h2>
+  <p>Hi {{ user.username }},</p>
+  <p>We're happy to let you know your order <strong>#{{ order.id }}</strong> has been completed. Thank you for shopping with SoBuy!</p>
+  <p><strong>Order ID:</strong> {{ order.id }}<br>
+  <strong>Total amount:</strong> ৳{{ "%.2f"|format(order.total_amount) }}</p>
+  <p>We hope to see you again soon.</p>
+  <p>— The SoBuy Team</p>
+</div>

@@ -12,12 +12,12 @@ class Config:
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or os.path.join(basedir, 'app', 'static', 'uploads')
     # recipients for order notifications (comma-separated)
     ORDER_NOTIFICATION_RECIPIENTS = os.environ.get('ORDER_NOTIFICATION_RECIPIENTS')
-    # Mail settings (read from environment variables)
-    MAIL_SERVER = os.environ.get('MAIL_SERVER')
-    _mail_port = os.environ.get('MAIL_PORT')
-    MAIL_PORT = int(_mail_port) if _mail_port else None
-    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'false').lower() in ('1', 'true', 'yes')
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'false').lower() in ('1', 'true', 'yes')
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
+    EMPLOYEE_RECIPIENTS = os.environ.get('EMPLOYEE_RECIPIENTS') or 'teamsobuy@gmail.com' # Replace with actual employee email(s)
+
+    # email settings
+    MAIL_PROVIDER = os.environ.get('MAIL_PROVIDER') or 'brevo'
+    BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or 'noreply@teamsobuy.shop'
+    BREVO_SENDER_EMAIL = os.environ.get('BREVO_SENDER_EMAIL') or 'noreply@teamsobuy.shop'
+
+    

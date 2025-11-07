@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Create / Edit Blog Post - SoBuy{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded shadow p-6 max-w-3xl mx-auto">
+    <h2 class="text-2xl font-bold text-primary mb-4">{% if post %}Edit{% else %}Create{% endif %} Blog Post</h2>
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.title.label(class_='block text-sm font-medium text-gray-700') }}
+            {{ form.title(class_='w-full border rounded p-2') }}
+        </div>
+        <div class="mb-3">
+            {{ form.body.label(class_='block text-sm font-medium text-gray-700') }}
+            {{ form.body(class_='w-full border rounded p-2', id='post-body', rows=12) }}
+            <p class="text-xs text-gray-500 mt-2">You can write Markdown. A Markdown editor is enabled below for convenience.</p>
+        </div>
+        <div class="mb-3">
+            {{ form.image.label(class_='block text-sm font-medium text-gray-700') }}
+            {{ form.image(class_='w-full') }}
+            {% if post and post.image_url %}
+                <div class="mt-2"><img src="{{ post.image_url }}" class="w-48 h-32 object-cover" alt="current"></div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            {{ form.status.label(class_='block text-sm font-medium text-gray-700') }}
+            {{ form.status(class_='w-full border rounded p-2') }}
+        </div>
+        <div>
+            {{ form.submit(class_='bg-primary text-white px-4 py-2 rounded') }}
+        </div>
+    </form>
+
+    <!-- EasyMDE (Markdown editor) from CDN to provide a nicer admin editing experience -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.20.0/dist/easymde.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/easymde@2.20.0/dist/easymde.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                var textarea = document.getElementById('post-body');
+                if (textarea) {
+                    new EasyMDE({ element: textarea, spellChecker: false, autosave: { enabled: true, uniqueId: 'blog-post' } });
+                }
+            } catch (e) {
+                console.warn('EasyMDE init failed', e);
+            }
+        });
+    </script>
+</div>
+{% endblock %}

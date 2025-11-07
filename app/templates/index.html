@@ -4,38 +4,153 @@
 
 {% block content %}
 <!-- Hero/Slider Section -->
-<div class="bg-gray-200 rounded-lg p-8 md:p-16 mb-12 text-center relative overflow-hidden" id="slider">
-    <!-- You will need JavaScript to make this an actual slider -->
-    <div class="slider-item active">
-        <h1 class="text-4xl md:text-5xl font-extrabold text-primary mb-4">Discover Our New Collection</h1>
-        <p class="text-lg text-gray-600 mb-6">Modern, minimal, and made for you.</p>
-        <a href="#products" class="bg-primary text-white px-6 py-3 rounded-md hover:bg-accent transition text-lg">Shop Now</a>
+{# If slider images exist, use the first as a background behind the hero content #}
+{# Only use a single hero background when there are NO slider images; when slider_images exist we render slides as DOM children #}
+{% set hero_bg = None if (slider_images and slider_images|length > 0) else (slider_images[0].image_url if slider_images and slider_images|length == 1 else None) %}
+<div class="bg-gray-200 rounded-lg p-8 md:p-16 mb-12 text-center relative overflow-hidden" id="slider" {% if hero_bg %}style="background-image: url('{{ hero_bg }}'); background-size: cover; background-position: center;"{% endif %}>
+    <!-- Slider DOM: each slide is rendered as a child .slide element so client JS can read directly from DOM (no JSON parsing) -->
+    <div class="slides absolute inset-0">
+        {% for s in slider_images %}
+        <div class="slide absolute inset-0 bg-center bg-cover opacity-0 transition-opacity duration-500" data-src="{{ s.image_url }}" {% if loop.first %}style="opacity:1;"{% endif %}></div>
+        {% endfor %}
     </div>
+
+    <!-- Dark overlay for improved text readability -->
+    <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-transparent"></div>
+    </div>
+
+    <!-- Overlay content stays above slides -->
+    <div class="relative z-20">
+        <div class="slider-item active text-white" style="text-shadow: 0 6px 18px rgba(0,0,0,0.6);">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4">Discover Our New Collection</h1>
+            <p class="text-lg mb-6">Modern, minimal, and made for you.</p>
+            <a href="#products" class="bg-white text-primary px-6 py-3 rounded-md hover:opacity-90 transition text-lg">Shop Now</a>
+        </div>
+    </div>
+
+    <!-- slide counter (will be updated by JS) -->
+    <div id="slider-counter" class="absolute top-4 right-4 bg-black bg-opacity-50 text-white text-sm px-3 py-1 rounded" style="display:none">1 / 1</div>
 </div>
+
+{# No inline JSON debug output on homepage - keep pages clean. Use /_test/slider for debugging. #}
+
+{# Auto-rotate slider script: only active when slider_images are provided #}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const slider = document.getElementById('slider');
+    if (!slider) return;
+
+    // collect slide elements rendered server-side
+    const slideEls = Array.from(slider.querySelectorAll('.slide'));
+    if (!slideEls || slideEls.length === 0) {
+        console.debug('No .slide elements found in DOM; nothing to do.');
+        return;
+    }
+
+    // preload and ensure each slide uses its data-src as background-image
+    slideEls.forEach((el, i) => {
+        const src = el.dataset.src;
+        if (src) {
+            el.style.backgroundImage = `url('${src}')`;
+            // preload image
+            const img = new Image(); img.src = src;
+        }
+        // ensure stacking order
+        el.style.zIndex = i === 0 ? '0' : '0';
+    });
+
+    // counter UI
+    const counter = document.getElementById('slider-counter');
+    if (counter) counter.style.display = 'block';
+
+    let idx = 0;
+    const total = slideEls.length;
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+
+    // helper to show a specific slide (fade)
+    function showSlide(newIdx) {
+        slideEls.forEach((el, i) => {
+            if (i === newIdx) {
+                el.style.opacity = '1';
+            } else {
+                el.style.opacity = '0';
+            }
+        });
+        idx = newIdx;
+        if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+        window.sliderIndex = idx;
+    }
+
+    // set initial visible slide
+    showSlide(0);
+
+    // rotate
+    const intervalMs = 4000;
+    setInterval(() => {
+        const next = (idx + 1) % total;
+        showSlide(next);
+    }, intervalMs);
+
+    // expose helper
+    window.nextSlide = function() { showSlide((idx + 1) % total); };
+    console.log('DOM-based slider initialized with', total, 'slides');
+});
+</script>
+{% endblock %}
 
 <!-- Top Products Section -->
 <section id="products">
     <h2 class="text-3xl font-bold text-center text-primary mb-8">Featured Products</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {% for product in products %}
-        <div class="bg-white rounded-lg shadow-md overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300">
-            <a href="{{ url_for('main.product_detail', product_id=product.id) }}">
-                {%- set imgs = (product.image_url or '').split(',') -%}
-                <img src="{{ imgs[0] if imgs[0] else url_for('static', filename='images/placeholder.png') }}" alt="{{ product.name }}" class="w-full h-56 object-cover">
-                <div class="p-6">
-                    <h3 class="text-xl font-semibold text-primary mb-2">{{ product.name }}</h3>
-                    <p class="text-gray-700 font-bold text-2xl">৳{{ "%.2f"|format(product.price) }}</p>
-                </div>
-            </a>
-            <div class="px-6 pb-4">
-                <form action="{{ url_for('main.add_to_cart', product_id=product.id) }}" method="POST">
-                    <button type="submit" class="w-full bg-accent text-white py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">Add to Cart</button>
-                </form>
+        {%- set imgs = (product.image_url or '').split(',') -%}
+        {%- set first = imgs[0].strip() if imgs and imgs[0] else '' -%}
+        <a href="{{ url_for('main.product_detail', product_id=product.id) }}" role="link" aria-label="{{ product.name }} - View product" class="block bg-white rounded-xl overflow-hidden group transform transition duration-300 hover:scale-[1.02] hover:-translate-y-2 shadow-lg hover:shadow-2xl border border-transparent hover:border-gray-200 focus:outline-none focus:ring-4 focus:ring-indigo-100">
+            <div class="relative w-full h-56 bg-gray-100 overflow-hidden">
+                {% if first %}
+                    {% if first.startswith('/') or first.startswith('http') %}
+                        <img src="{{ first }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='uploads/' + first) }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                    {% endif %}
+                {% else %}
+                    <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                {% endif %}
+                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
             </div>
-        </div>
+            <div class="p-4 text-center">
+                <h3 class="text-2xl font-extrabold text-primary mb-2 truncate leading-tight">{{ product.name }}</h3>
+                <div class="text-lg font-semibold text-accent">৳ {{ '%.2f'|format(product.price) }}</div>
+            </div>
+        </a>
         {% else %}
         <p class="col-span-full text-center text-gray-500">No products found.</p>
         {% endfor %}
     </div>
 </section>
+
+<!-- Recent Blog Posts -->
+{% if recent_posts %}
+<section id="blogs" class="mt-12">
+    <h2 class="text-3xl font-bold text-center text-primary mb-6">From Our Blog</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for post in recent_posts %}
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            {% if post.image_url %}
+            <img src="{{ post.image_url }}" alt="{{ post.title }}" class="w-full h-48 object-cover">
+            {% endif %}
+            <div class="p-4">
+                <a href="{{ url_for('main.blog_detail', post_id=post.id) }}" class="text-lg font-semibold text-primary">{{ post.title }}</a>
+                <p class="text-sm text-gray-600 mt-2">{{ post.body[:160] }}{% if post.body|length > 160 %}...{% endif %}</p>
+                <div class="mt-3">
+                    <a href="{{ url_for('main.blog_detail', post_id=post.id) }}" class="text-sm text-accent hover:underline">Read more</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Delivery Fees{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6 max-w-2xl">
+  <div class="bg-white rounded shadow p-6">
+    <h2 class="text-2xl font-bold mb-4">Delivery Fee Settings</h2>
+    <form method="POST" class="space-y-4">
+      {% for f in fees %}
+        <div>
+          <label class="block text-sm font-medium text-gray-700">{{ f.label }}</label>
+          <input type="text" name="amount_{{ f.key }}" value="{{ "%.2f"|format(f.amount) }}" class="mt-1 block w-48 border px-3 py-2 rounded" />
+        </div>
+      {% endfor %}
+      <div class="mt-4">
+        <button type="submit" class="bg-primary text-white px-4 py-2 rounded">Save Delivery Fees</button>
+        <a href="{{ url_for('main.admin_dashboard') }}" class="ml-4 text-sm text-gray-600">Back to dashboard</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Invoice - Order #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6 max-w-3xl">
+  <div class="bg-white rounded shadow p-6">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h2 class="text-2xl font-bold">Invoice</h2>
+        <div class="text-sm text-gray-600">Order #{{ order.id }} • {{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '' }}</div>
+      </div>
+      <div class="text-right">
+        <div class="font-semibold">Total: ৳{{ "%.2f"|format(order.total_amount) }}</div>
+        <div class="text-sm text-gray-600">Status: {{ order.status }}</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div>
+        <h3 class="font-semibold">Billing / Shipping</h3>
+        <div class="text-sm text-gray-700 mt-2">
+          <div>{{ user.username or 'Customer' }}</div>
+          <div>{{ user.address or '—' }}</div>
+          <div>{{ user.phone or '—' }}</div>
+          <div>{{ user.email or '—' }}</div>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-semibold">Payment</h3>
+        <div class="text-sm text-gray-700 mt-2">
+          <div>Method: {{ order.payment_method }}</div>
+          {% if order.payment_method and order.payment_method|lower == 'bkash' %}
+            <div>Receiving number: {{ order.bkash_number or '—' }}</div>
+            <div>Transaction ID: {{ order.trx_id or '—' }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <h3 class="font-semibold mb-2">Items</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+          <thead class="bg-gray-100 text-left text-sm text-gray-700">
+            <tr>
+              <th class="py-2 px-3">Product</th>
+              <th class="py-2 px-3 text-right">Unit Price</th>
+              <th class="py-2 px-3 text-center">Qty</th>
+              <th class="py-2 px-3 text-right">Line Total</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-700">
+            {% for it in items %}
+            <tr class="border-b">
+              <td class="py-2 px-3">{{ it.product.name if it.product else ('Product #' ~ it.product_id) }}</td>
+              <td class="py-2 px-3 text-right">৳{{ "%.2f"|format(it.unit_price) }}</td>
+              <td class="py-2 px-3 text-center">{{ it.quantity }}</td>
+              <td class="py-2 px-3 text-right">৳{{ "%.2f"|format(it.unit_price * it.quantity) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mb-4 text-right text-gray-700">
+      {% set items_total = 0.0 %}
+      {% for it in items %}
+        {% set items_total = items_total + (it.unit_price * it.quantity) %}
+      {% endfor %}
+      <div class="text-sm">Items total: ৳{{ "%.2f"|format(items_total) }}</div>
+  <div class="text-sm">Delivery: {{ delivery_label or order.delivery_type or '—' }} — ৳{{ "%.2f"|format(order.delivery_fee or 0.0) }}</div>
+      <div class="text-lg font-bold mt-2">Total: ৳{{ "%.2f"|format(order.total_amount) }}</div>
+    </div>
+
+    <div class="flex justify-between items-center">
+      <a href="{{ url_for('main.index') }}" class="bg-primary text-white px-4 py-2 rounded">Go to Home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

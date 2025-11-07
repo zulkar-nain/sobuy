@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Newsletter Subscribers - SoBuy Admin{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded shadow p-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-bold text-primary">Newsletter Subscribers</h2>
+        <a href="{{ url_for('main.admin_subscribers_export') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm">Export CSV</a>
+    </div>
+    {% if subs %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full table-auto">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="px-4 py-2 text-left">#</th>
+                    <th class="px-4 py-2 text-left">Email</th>
+                    <th class="px-4 py-2 text-left">Subscribed At</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for s in subs %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ loop.index }}</td>
+                    <td class="px-4 py-2">{{ s.email }}</td>
+                    <td class="px-4 py-2 text-sm">{{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>No subscribers yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

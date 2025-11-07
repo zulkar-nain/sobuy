@@ -2,18 +2,105 @@
 
 {% block title %}{{ product.name }} - SoBuy{% endblock %}
 
+{# Page-specific SEO metadata and Open Graph, overrides the base defaults #}
+{% block meta_description %}{{ (product.description|striptags).split('\n')[0] | truncate(160) }}{% endblock %}
+{% block og_title %}{{ product.name }} — Genuine Leather Wallet | SoBuy{% endblock %}
+{% block og_description %}{{ (product.description|striptags).split('\n')[0] | truncate(200) }}{% endblock %}
+{% set _imgs = (product.image_url or '').split(',') | map('trim') | list %}
+{% if _imgs and _imgs[0] %}
+    {% set _first_img = _imgs[0] %}
+    {% if _first_img.startswith('http') %}
+        {% set _ogimg = _first_img %}
+    {% elif _first_img.startswith('/') %}
+        {% set _ogimg = _first_img %}
+    {% elif _first_img.startswith('static/') %}
+        {% set _ogimg = url_for('static', filename=_first_img.split('static/',1)[1], _external=True) %}
+    {% elif _first_img.startswith('uploads/') %}
+        {% set _ogimg = url_for('static', filename=_first_img, _external=True) %}
+    {% else %}
+        {% set _ogimg = url_for('static', filename='uploads/' ~ _first_img, _external=True) %}
+    {% endif %}
+    {% block og_image %}{{ _ogimg }}{% endblock %}
+{% endif %}
+
 {% block content %}
+<style>
+/* hide-scrollbar helper for thumbnail strip */
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+</style>
+    {# Product JSON-LD for rich results #}
+    <script type="application/ld+json">
+    {{ {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": product.name,
+        "image": [ (product.image_url or '').split(',') | map('trim') | list ],
+        "description": (product.description|striptags).strip(),
+        "sku": product.id,
+        "brand": {"@type": "Brand","name": "SoBuy"},
+        "offers": {"@type": "Offer","url": url_for('main.product_detail', product_id=product.id, _external=True),"priceCurrency": "BDT","price": ('%.2f'|format(product.price)),"availability": "https://schema.org/InStock"}
+    } | tojson(indent=2) }}
+    </script>
 <div class="bg-white shadow-lg rounded-lg overflow-hidden">
     <div class="md:flex">
-        <!-- Product Image -->
+        <!-- Product Image / Slider -->
         <div class="md:w-1/2 p-6">
-            {%- set imgs = (product.image_url or '').split(',') -%}
-            <div class="mb-4">
-                <img src="{{ imgs[0] if imgs[0] else url_for('static', filename='images/placeholder.png') }}" alt="{{ product.name }}" class="w-full h-96 object-cover rounded">
+            {%- set imgs = (product.image_url or '').split(',') | map('trim') | list -%}
+            {%- if imgs|length == 0 or (imgs|length==1 and imgs[0]=='') -%}
+                {%- set imgs = [ url_for('static', filename='images/placeholder.png') ] -%}
+            {%- endif -%}
+
+            <div class="product-slider relative mb-4">
+                <div class="slides relative overflow-hidden rounded">
+                    {% for img in imgs if img %}
+                        {# Resolve stored path vs filename robustly #}
+                        {% set src = None %}
+                        {% if img.startswith('http') %}
+                            {% set src = img %}
+                        {% elif img.startswith('/') %}
+                            {% set src = img %}
+                        {% elif img.startswith('static/') %}
+                            {% set src = url_for('static', filename=img.split('static/',1)[1]) %}
+                        {% elif img.startswith('uploads/') %}
+                            {% set src = url_for('static', filename=img) %}
+                        {% else %}
+                            {# plain filename stored in DB -> uploads/<name> #}
+                            {% set src = url_for('static', filename='uploads/' ~ img) %}
+                        {% endif %}
+                        <div class="product-slide w-full h-96 bg-gray-100 flex items-center justify-center transition-opacity duration-300 {% if loop.first %}block{% else %}hidden{% endif %}">
+                            <img src="{{ src }}" alt="{{ product.name }}" class="w-full h-96 object-cover" loading="{% if loop.first %}eager{% else %}lazy{% endif %}" srcset="{{ src }} 1x">
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Prev / Next -->
+                <button type="button" class="prev absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 shadow-md" aria-label="Previous image">
+                    &larr;
+                </button>
+                <button type="button" class="next absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 rounded-full p-2 shadow-md" aria-label="Next image">
+                    &rarr;
+                </button>
             </div>
-            <div class="flex space-x-3">
+
+            <!-- Thumbnails -->
+            <div class="flex gap-3 overflow-x-auto py-2 hide-scrollbar">
                 {% for img in imgs if img %}
-                    <img src="{{ img }}" class="w-20 h-20 object-cover rounded border cursor-pointer" alt="thumb">
+                    {% set tsrc = None %}
+                    {% if img.startswith('http') %}
+                        {% set tsrc = img %}
+                    {% elif img.startswith('/') %}
+                        {% set tsrc = img %}
+                    {% elif img.startswith('static/') %}
+                        {% set tsrc = url_for('static', filename=img.split('static/',1)[1]) %}
+                    {% elif img.startswith('uploads/') %}
+                        {% set tsrc = url_for('static', filename=img) %}
+                    {% else %}
+                        {% set tsrc = url_for('static', filename='uploads/' ~ img) %}
+                    {% endif %}
+                    <button type="button" class="product-thumb w-20 h-20 flex-shrink-0 rounded overflow-hidden border" aria-label="View image {{ loop.index }}">
+                        <img src="{{ tsrc }}" alt="{{ product.name }} thumbnail {{ loop.index }}" class="w-full h-full object-cover" loading="lazy" srcset="{{ tsrc }} 1x">
+                    </button>
                 {% endfor %}
             </div>
         </div>
@@ -21,10 +108,10 @@
         <!-- Product Details -->
         <div class="md:w-1/2 p-8">
             <h1 class="text-4xl font-bold text-primary mb-4">{{ product.name }}</h1>
-            <p class="text-gray-600 text-lg mb-6">{{ product.description }}</p>
+            <div class="text-gray-600 text-lg mb-6 whitespace-pre-wrap">{{ product.description }}</div>
             
             <div class="flex items-center justify-between mb-8">
-                <span class="text-4xl font-bold text-primary">${{ "%.2f"|format(product.price) }}</span>
+                <span class="text-4xl font-bold text-primary">৳{{ "%.2f"|format(product.price) }}</span>
             </div>
             
             <!-- Add to Cart Form -->
@@ -43,9 +130,9 @@
                                 <label class="inline-flex items-center space-x-2">
                                     <input type="radio" name="color" value="{{ c.strip() }}" class="form-radio">
                                     {% if c.strip().startswith('#') %}
-                                        <span class="px-3 py-1 rounded" style="background:  {{ c.strip() }}; border: 1px solid #ddd;"></span>
+                                        <span class="px-3 py-1 rounded color-swatch" data-color="{{ c.strip() }}" aria-hidden="true"></span>
                                     {% else %}
-                                        <span class="px-3 py-1 rounded" style="border: 1px solid #ddd;">{{ c.strip() }}</span>
+                                        <span class="px-3 py-1 rounded color-swatch" data-color="{{ c.strip() }}">{{ c.strip() }}</span>
                                     {% endif %}
                                 </label>
                             {% endfor %}
@@ -60,23 +147,141 @@
         </div>
     </div>
 </div>
+    <!-- Other products: recent active items -->
+    {% if other_products %}
+    <div class="mt-12">
+        <h2 class="text-2xl font-semibold mb-4">Other products</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {% for p in other_products %}
+                {%- set imgs = (p.image_url or '').split(',') | map('trim') | list -%}
+                {% if imgs and imgs[0] %}
+                    {% set first = imgs[0] %}
+                    {% if first.startswith('http') %}
+                        {% set thumb = first %}
+                    {% elif first.startswith('/') %}
+                        {% set thumb = first %}
+                    {% elif first.startswith('static/') %}
+                        {% set thumb = url_for('static', filename=first.split('static/',1)[1]) %}
+                    {% elif first.startswith('uploads/') %}
+                        {% set thumb = url_for('static', filename=first) %}
+                    {% else %}
+                        {% set thumb = url_for('static', filename='uploads/' ~ first) %}
+                    {% endif %}
+                {% else %}
+                    {% set thumb = url_for('static', filename='images/placeholder.png') %}
+                {% endif %}
+
+                <a href="{{ url_for('main.product_detail', product_id=p.id) }}" class="block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition">
+                    <div class="w-full h-36 bg-gray-100 overflow-hidden">
+                        <img src="{{ thumb }}" alt="{{ p.name }}" class="w-full h-36 object-cover" loading="lazy" srcset="{{ thumb }} 1x">
+                    </div>
+                    <div class="p-2">
+                        <div class="text-sm font-medium text-gray-800 truncate">{{ p.name }}</div>
+                        <div class="text-sm text-gray-500">৳{{ '%.2f'|format(p.price) }}</div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-    // Thumbnail click -> swap main image
-    const thumbs = document.querySelectorAll('.cursor-pointer');
-    const mainImg = document.querySelector('.w-full.h-96');
-    thumbs.forEach(t => t.addEventListener('click', () => {
-        if(mainImg && t.src) mainImg.src = t.src;
-    }));
+    // PRODUCT IMAGE SLIDER
+    const slides = Array.from(document.querySelectorAll('.product-slide'));
+    const thumbs = Array.from(document.querySelectorAll('.product-thumb'));
+    const prevBtn = document.querySelector('.prev');
+    const nextBtn = document.querySelector('.next');
+    let current = 0;
+
+    function show(index){
+        slides.forEach((s, i) => {
+            if(i === index){
+                s.classList.remove('hidden');
+                s.classList.add('block');
+            } else {
+                s.classList.remove('block');
+                s.classList.add('hidden');
+            }
+        });
+        thumbs.forEach((t, i) => {
+            if(i === index){
+                t.classList.add('ring-2', 'ring-indigo-500');
+            } else {
+                t.classList.remove('ring-2', 'ring-indigo-500');
+            }
+        });
+        // keep active thumb visible on small screens (only horizontally — avoid vertical scrolling)
+        const active = thumbs[index];
+        if(active && active.scrollIntoView) {
+            try {
+                active.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
+            } catch(e) {
+                // fallback for very old browsers
+                active.scrollIntoView();
+            }
+        }
+    }
+
+    function next(){ current = (current + 1) % slides.length; show(current); }
+    function prev(){ current = (current - 1 + slides.length) % slides.length; show(current); }
+
+    if(nextBtn) nextBtn.addEventListener('click', next);
+    if(prevBtn) prevBtn.addEventListener('click', prev);
+
+    thumbs.forEach((t, i) => t.addEventListener('click', () => { current = i; show(current); }));
+
+    // keyboard
+    document.addEventListener('keydown', function(e){
+        if(e.key === 'ArrowRight') next();
+        if(e.key === 'ArrowLeft') prev();
+    });
+
+    // touch support (simple swipe)
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const slider = document.querySelector('.product-slider');
+    if(slider){
+        slider.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+        slider.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            const dx = touchEndX - touchStartX;
+            if(Math.abs(dx) > 40){
+                if(dx < 0) next(); else prev();
+            }
+        });
+    }
+
+    // initialize
+    if(slides.length) show(0);
+
+    // Apply color swatches (move inline styles to JS to avoid template/CSS linter warnings)
+    const swatches = Array.from(document.querySelectorAll('.color-swatch'));
+    swatches.forEach(s => {
+        const color = s.dataset.color && s.dataset.color.trim();
+        if(!color) return;
+        s.setAttribute('title', color);
+        if(color.startsWith('#') || color.toLowerCase().startsWith('rgb') || color.toLowerCase().startsWith('hsl')){
+            s.style.background = color;
+            s.style.border = '1px solid #ddd';
+            s.style.color = 'transparent';
+        } else {
+            // treat as label (e.g., 'Red', 'Blue') — show text with border
+            s.style.background = 'transparent';
+            s.style.border = '1px solid #ddd';
+            s.style.color = '#111';
+            s.style.padding = '0.25rem 0.5rem';
+            s.style.fontSize = '0.85rem';
+        }
+    });
 
     // Require color selection before enabling Add to Cart
     const colorRadios = document.querySelectorAll('input[name="color"]');
     const addBtn = document.getElementById('add-to-cart-btn');
     if(colorRadios.length && addBtn){
-        // disable until one is selected
         addBtn.disabled = true;
         addBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
@@ -87,7 +292,6 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         }));
 
-        // also guard on submit (in case JS changed)
         const form = addBtn.closest('form');
         if(form){
             form.addEventListener('submit', function(e){

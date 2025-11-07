@@ -1,0 +1,9 @@
+<div style="font-family:system-ui, -apple-system, 'Segoe UI', Roboto; color:#333;">
+  <h2>Your order #{{ order.id }} is being shipped</h2>
+  <p>Hi {{ user.username }},</p>
+  <p>Good news — your order <strong>#{{ order.id }}</strong> is on the way.</p>
+  <p><strong>Order ID:</strong> {{ order.id }}<br>
+  <strong>Total amount:</strong> ৳{{ "%.2f"|format(order.total_amount) }}</p>
+  <p>If you have any questions or need help, reply to this email.</p>
+  <p>Thanks for shopping with SoBuy!</p>
+</div>

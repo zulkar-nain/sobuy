@@ -24,6 +24,11 @@ with app.app_context():
         db.session.execute(text("ALTER TABLE 'order' ADD COLUMN status VARCHAR(20) DEFAULT 'pending'"))
         changes.append('order.status')
 
+    # Add product.status if missing (used to mark active/inactive products)
+    if not has_column('product', 'status'):
+        db.session.execute(text("ALTER TABLE product ADD COLUMN status VARCHAR(20) DEFAULT 'active'"))
+        changes.append('product.status')
+
     if not has_column('user', 'email'):
         # Add email column (may be null for existing users)
         db.session.execute(text("ALTER TABLE user ADD COLUMN email VARCHAR(120)"))

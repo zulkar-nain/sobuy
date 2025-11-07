@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Slider Test - SoBuy{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Slider Test Page</h2>
+<p class="mb-4 text-sm text-gray-600">This page renders the slider DOM directly for debugging (not the full homepage).</p>
+
+<div class="bg-gray-200 rounded-lg p-8 md:p-16 mb-12 text-center relative overflow-hidden" id="slider">
+    <div class="slides absolute inset-0">
+        {% for s in slider_images %}
+        <div class="slide absolute inset-0 bg-center bg-cover opacity-0 transition-opacity duration-500" data-src="{{ s.image_url }}" {% if loop.first %}style="opacity:1;"{% endif %}></div>
+        {% endfor %}
+    </div>
+
+    <div class="relative z-10">
+        <div class="slider-item active">
+            <h1 class="text-3xl font-extrabold text-primary mb-2">Test Slider</h1>
+            <p class="text-sm text-gray-600 mb-4">If slides are present they should rotate every 4s.</p>
+        </div>
+    </div>
+
+    <div id="slider-counter" class="absolute top-4 right-4 bg-black bg-opacity-50 text-white text-sm px-3 py-1 rounded" style="display:none">1 / 1</div>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const slider = document.getElementById('slider');
+    if (!slider) return;
+    const slideEls = Array.from(slider.querySelectorAll('.slide'));
+    if (!slideEls.length) { console.log('No slides found'); return; }
+    slideEls.forEach((el,i)=>{ const src = el.dataset.src; if(src){ el.style.backgroundImage = `url('${src}')`; new Image().src = src;} });
+    const counter = document.getElementById('slider-counter'); if(counter) counter.style.display='block';
+    let idx=0, total=slideEls.length; if(counter) counter.textContent=(idx+1)+' / '+total;
+    function showSlide(n){ slideEls.forEach((el,i)=>el.style.opacity=(i===n?'1':'0')); idx=n; if(counter) counter.textContent=(idx+1)+' / '+total; }
+    showSlide(0);
+    setInterval(()=>showSlide((idx+1)%total),4000);
+    console.log('Slider test initialized with', total, 'slides');
+});
+</script>
+{% endblock %}
+
+{% endblock %}

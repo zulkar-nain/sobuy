@@ -13,17 +13,52 @@
         {{ render_field(form.address) }}
         {{ render_field(form.phone) }}
 
+        {% if not current_user.phone or not current_user.address %}
+            <div class="mb-4">
+                {{ render_field(form.save_to_profile) }}
+            </div>
+        {% endif %}
+
         <h2 class="text-xl font-semibold mb-4 mt-6">Payment</h2>
         <div class="mb-4">
             <label class="block text-gray-700">Select Payment Method</label>
             <select name="payment_method" id="payment_method" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                <option value="cash_on_delivery">Cash on Delivery</option>
-                <option value="bkash">bKash</option>
+                <option value="cash_on_delivery" {% if form.payment_method.data == 'cash_on_delivery' %}selected{% endif %}>Cash on Delivery</option>
+                <option value="bkash" {% if form.payment_method.data == 'bkash' %}selected{% endif %} {% if not active_bkash %}disabled title="bKash currently unavailable"{% endif %}>bKash</option>
             </select>
+            {% if not active_bkash %}
+                <p class="text-xs text-red-600 mt-1">bKash is temporarily disabled, Please use other payment methods!</p>
+            {% endif %}
         </div>
 
         <div id="bkash-section" class="hidden mb-4">
+            <div class="mb-2">
+                <p class="text-sm text-gray-700">
+                    {% if active_bkash %}
+                        <strong class="text-lg">SEND MONEY to {{ active_bkash.number }}</strong>
+                        <br>
+                        <p class="text-sm text-gray-600 mt-1">(Do not call this number for any query)</p>
+                        After sending, enter your sending bKash number and the transaction ID below.
+                    {% else %}
+                        <strong class="text-lg">bKash payments</strong>
+                        <br>
+                        No receiving bKash number is currently configured. Please contact support if you want to pay via bKash.
+                    {% endif %}
+                </p>
+            </div>
+
+            {{ render_field(form.bkash_number) }}
             {{ render_field(form.trx_id) }}
+        </div>
+
+        
+
+        <div class="mt-4 mb-4">
+            {% if delivery %}
+                <div class="text-sm text-gray-700">Delivery: <span class="font-medium">{{ delivery.label }}</span> — ৳{{ "%.2f"|format(delivery.amount) }}</div>
+            {% else %}
+                <div class="text-sm text-red-600">No delivery option selected. Please go back to cart to choose one.</div>
+            {% endif %}
         </div>
 
         <div class="mt-6 flex justify-between items-center">
