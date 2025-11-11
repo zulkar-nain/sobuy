@@ -20,7 +20,9 @@
     {% else %}
         {% set _ogimg = url_for('static', filename='uploads/' ~ _first_img, _external=True) %}
     {% endif %}
-    {% block og_image %}{{ _ogimg }}{% endblock %}
+    {# Set a page-scoped OG image variable for the base template to consume. Using a variable
+       avoids emitting the raw URL text into the rendered page (defensive against block rendering issues). #}
+    {% set page_og_image = _ogimg %}
 {% endif %}
 
 {% block content %}
@@ -302,6 +304,16 @@ document.addEventListener('DOMContentLoaded', function(){
             });
         }
     }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const desc = document.querySelector('.text-gray-600.whitespace-pre-wrap');
+  if (!desc) return;
+  // Simple regex to find http(s) URLs and wrap with anchor tags
+  const urlRegex = /((https?:\/\/)[\w\-._~:\/?#[\]@!$&'()*+,;=%]+)/g;
+  // Replace text nodes only to avoid double-wrapping existing anchors
+  desc.innerHTML = desc.innerHTML.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
 });
 </script>
 {% endblock %}

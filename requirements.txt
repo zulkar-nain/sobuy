@@ -1,15 +1,24 @@
 Flask==2.2.2
-Flask-SQLAlchemy>=3.0.0
-Flask-WTF==1.0.0
+# Use Flask-SQLAlchemy 3.x for compatibility with SQLAlchemy 2.x
+Flask-SQLAlchemy==3.0.3
+# Pin the SQLAlchemy major version that is running on your server (adjust if needed)
+SQLAlchemy==2.0.44
+
+# Fix compatibility issues between Flask-WTF and Flask/Markup changes
+Flask-WTF==1.1.1
 Flask-Login==0.6.2
 WTForms==3.0.1
 python-dotenv==1.0.0
-# note: sqlite and tailwind entries removed as pip packages; system sqlite is used
+# note: sqlite and tailwind are not installed via pip; system sqlite and Tailwind build tools are used
 Jinja2==3.0.3
 Werkzeug==2.2.2
+MarkupSafe==2.1.3
 gunicorn==20.1.0
 sib_api_v3_sdk==7.6.0
 Flask-Migrate==4.0.4
 Pillow==10.1.0
 markdown==3.4.4
 bleach==6.0.0
+
+# If you need to regenerate a fully pinned requirements.txt from a running venv,
+# run: python scripts/pin_requirements.py  (a backup of the previous file will be created)

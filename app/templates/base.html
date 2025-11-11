@@ -14,22 +14,29 @@
     <meta name="description" content="{% block meta_description %}Shop genuine leather wallets and moneybags at SoBuy — handcrafted, durable designs and fast shipping.{% endblock %}">
     <link rel="canonical" href="{% block canonical %}{{ request.url }}{% endblock %}" />
 
-    {# Default og_image block so self.og_image() is always available; pages can override this block #}
-    {% block og_image %}{% endblock %}
+     {# Page-specific og image: child templates can set `page_og_image` (preferred).
+         Keep an empty `og_image` block for backward compatibility so older templates
+         that override it still work. We prefer `page_og_image` when set and
+         otherwise call the block via `self.og_image()` (safe when the block exists).
+     #}
+     {% block og_image %}{% endblock %}
+     {# Prefer an explicit `page_og_image` variable set by child templates; if not present
+         fall back to an empty string to avoid calling template references at render-time. #}
+     {% set _page_og_image = page_og_image if page_og_image is defined else '' %}
 
-    <!-- Open Graph -->
+     <!-- Open Graph -->
     <meta property="og:site_name" content="SoBuy">
     <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
     <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{% block og_url %}{{ request.url }}{% endblock %}">
-    <meta property="og:image" content="{{ self.og_image() }}">
+    <meta property="og:image" content="{{ _page_og_image }}">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{% block twitter_title %}{{ self.title() }}{% endblock %}">
     <meta name="twitter:description" content="{% block twitter_description %}{{ self.meta_description() }}{% endblock %}">
-    <meta name="twitter:image" content="{{ self.og_image() }}">
+    <meta name="twitter:image" content="{{ _page_og_image }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Fonts for improved reading: Inter for UI, Merriweather for article body -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -132,9 +139,21 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md" role="alert">
-                        <p>{{ message }}</p>
-                    </div>
+                    {# Admin-category flashes should only be visible to admins. Other flashes
+                       are rendered normally unless they contain upload paths which we skip. #}
+                    {% if category == 'admin' %}
+                        {% if current_user.is_authenticated and current_user.is_admin %}
+                            <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 rounded-md break-words max-w-full" role="alert">
+                                <p class="truncate">{{ message }}</p>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        {% if not ('/static/uploads/' in message or '/uploads/' in message) %}
+                            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md break-words max-w-full" role="alert">
+                                <p class="truncate">{{ message }}</p>
+                            </div>
+                        {% endif %}
+                    {% endif %}
                 {% endfor %}
             {% endif %}
         {% endwith %}

@@ -137,3 +137,33 @@ These steps assume you have a GitHub repository and want to deploy the `flask-ec
    - For local development, use `.env` and `python-dotenv` (already used in `run.py`).
 
 If you want, I can prepare a ready-to-push checklist and a small `deploy.md` with exact UI steps and screenshots tailored to DigitalOcean.
+
+## Pinning runtime dependencies (generate requirements.txt)
+
+To ensure production uses the exact same Python packages as your running environment, pin the active virtualenv packages to `requirements.txt` before pushing/deploying. A helper script is provided:
+
+- `scripts/pin_requirements.py` — Python script that runs `pip freeze` using the same interpreter and writes `requirements.txt` (creates a `requirements.txt.bak` backup).
+- `scripts/pin_requirements.sh` — Bash wrapper to run `pip freeze` (for Linux/macOS servers).
+- `scripts/pin_requirements.ps1` — PowerShell helper for Windows.
+
+Usage example (on your server where the app venv is active):
+
+Linux/macOS (bash):
+```bash
+cd /home/sobuy/sobuy-app
+source venv/bin/activate
+python scripts/pin_requirements.py
+# review requirements.txt, then commit
+git add requirements.txt && git commit -m "chore: pin requirements"
+```
+
+Windows PowerShell:
+```powershell
+Set-Location C:\path\to\flask-ecommerce-app
+. .\.venv\Scripts\Activate.ps1
+python .\scripts\pin_requirements.py
+# review and commit
+git add requirements.txt; git commit -m "chore: pin requirements"
+```
+
+Do not commit secrets or `.env` files. After pinning, run your deployment steps so the build installs the same packages.

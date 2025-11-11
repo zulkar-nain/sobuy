@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Create{% endif %} Coupon - Admin - SoBuy{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded shadow p-6 max-w-2xl mx-auto">
+    <h2 class="text-2xl font-bold text-primary mb-4">
+        {% if is_edit %}Edit Coupon{% else %}Create New Coupon{% endif %}
+    </h2>
+    
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        
+        <div class="mb-4">
+            {{ form.code.label(class_='block text-sm font-medium text-gray-700 mb-1') }}
+            {{ form.code(class_='w-full border rounded p-2 uppercase') }}
+            {% if form.code.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.code.errors[0] }}</p>
+            {% endif %}
+            <p class="text-xs text-gray-500 mt-1">Enter a unique code (e.g., SAVE20). Will be auto-converted to uppercase.</p>
+        </div>
+
+        <div class="mb-4">
+            {{ form.discount_percent.label(class_='block text-sm font-medium text-gray-700 mb-1') }}
+            {{ form.discount_percent(class_='w-full border rounded p-2') }}
+            {% if form.discount_percent.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.discount_percent.errors[0] }}</p>
+            {% endif %}
+            <p class="text-xs text-gray-500 mt-1">Percentage discount (0-100). E.g., 20 for 20% off.</p>
+        </div>
+
+        <div class="mb-4">
+            {{ form.max_discount_amount.label(class_='block text-sm font-medium text-gray-700 mb-1') }}
+            {{ form.max_discount_amount(class_='w-full border rounded p-2') }}
+            {% if form.max_discount_amount.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.max_discount_amount.errors[0] }}</p>
+            {% endif %}
+            <p class="text-xs text-gray-500 mt-1">Optional: Maximum discount amount in BDT. Leave empty for no cap.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                {{ form.max_uses_per_user.label(class_='block text-sm font-medium text-gray-700 mb-1') }}
+                {{ form.max_uses_per_user(class_='w-full border rounded p-2') }}
+                {% if form.max_uses_per_user.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.max_uses_per_user.errors[0] }}</p>
+                {% endif %}
+                <p class="text-xs text-gray-500 mt-1">How many times one user can use this coupon. Leave empty for unlimited.</p>
+            </div>
+
+            <div>
+                {{ form.max_total_uses.label(class_='block text-sm font-medium text-gray-700 mb-1') }}
+                {{ form.max_total_uses(class_='w-full border rounded p-2') }}
+                {% if form.max_total_uses.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.max_total_uses.errors[0] }}</p>
+                {% endif %}
+                <p class="text-xs text-gray-500 mt-1">Total usage limit across all users. Leave empty for unlimited.</p>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            {{ form.expiry_date.label(class_='block text-sm font-medium text-gray-700 mb-1') }}
+            {{ form.expiry_date(class_='w-full border rounded p-2') }}
+            {% if form.expiry_date.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.expiry_date.errors[0] }}</p>
+            {% endif %}
+            <p class="text-xs text-gray-500 mt-1">Optional: When this coupon expires. Leave empty for no expiry.</p>
+        </div>
+
+        <div class="mb-6">
+            <label class="flex items-center">
+                {{ form.is_active(class_='mr-2') }}
+                <span class="text-sm font-medium text-gray-700">Active (coupon can be used)</span>
+            </label>
+            {% if form.is_active.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.is_active.errors[0] }}</p>
+            {% endif %}
+        </div>
+
+        {% if is_edit and coupon %}
+        <div class="mb-4 p-4 bg-gray-50 rounded">
+            <p class="text-sm text-gray-600">
+                <strong>Current Usage:</strong> {{ coupon.total_uses }} times
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="flex gap-3">
+            {{ form.submit(class_='bg-primary text-white px-6 py-2 rounded hover:bg-accent') }}
+            <a href="{{ url_for('main.admin_coupons') }}" class="bg-gray-300 text-gray-700 px-6 py-2 rounded hover:bg-gray-400">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

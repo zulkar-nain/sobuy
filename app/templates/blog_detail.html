@@ -20,7 +20,7 @@
             {% if not current_user.is_authenticated %}
                 <a href="{{ url_for('main.login') }}" class="bg-gray-200 px-3 py-1 rounded text-sm inline-flex items-center">❤ {{ like_count }}</a>
             {% else %}
-                <form method="POST" action="{{ url_for('main.toggle_like', post_id=post.id) }}">
+                <form method="POST" action="{{ url_for('main.toggle_like', slug=post.slug) }}">
                     <button type="submit" class="bg-accent text-white px-3 py-1 rounded text-sm">{% if user_liked %}Unlike{% else %}Like{% endif %} • {{ like_count }}</button>
                 </form>
             {% endif %}
@@ -53,7 +53,7 @@
 
     <div class="mt-6">
         {% if current_user.is_authenticated %}
-            <form method="POST" action="{{ url_for('main.post_comment', post_id=post.id) }}">
+            <form method="POST" action="{{ url_for('main.post_comment', slug=post.slug) }}">
                 {{ form.hidden_tag() }}
                 <div>
                     {{ form.body(class_='w-full border rounded p-2') }}
@@ -75,7 +75,7 @@
                                         {% for r in related %}
                                             <div class="flex gap-3 items-start">
                                                                     {% if r.image_url %}
-                                                                        <a href="{{ url_for('main.blog_detail', post_id=r.id) }}" class="w-24 h-16 flex-shrink-0 overflow-hidden rounded">
+                                                                        <a href="{{ url_for('main.blog_detail', slug=r.slug) }}" class="w-24 h-16 flex-shrink-0 overflow-hidden rounded">
                                                                             {% set rel = r.image_url.strip() %}
                                                                             {% if rel.startswith('/') or rel.startswith('http') %}
                                                                                 <img src="{{ rel }}" alt="{{ r.title }}" class="w-full h-full object-cover">
@@ -85,7 +85,7 @@
                                                                         </a>
                                                                     {% endif %}
                                                 <div>
-                                                    <a href="{{ url_for('main.blog_detail', post_id=r.id) }}" class="font-medium block">{{ r.title }}</a>
+                                                    <a href="{{ url_for('main.blog_detail', slug=r.slug) }}" class="font-medium block">{{ r.title }}</a>
                                                     <p class="text-sm text-gray-600">{{ r.created_at.strftime('%b %d, %Y') }}</p>
                                                 </div>
                                             </div>

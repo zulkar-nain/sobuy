@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, FloatField, FileField, TextAreaField
-from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
+from wtforms import StringField, PasswordField, SubmitField, FloatField, FileField, TextAreaField, HiddenField, SelectField, BooleanField, IntegerField, DateTimeLocalField
+from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, Optional, NumberRange
 from app.models import User
 
 class RegistrationForm(FlaskForm):
@@ -30,9 +30,6 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()], render_kw={"placeholder": "******************"})
     submit = SubmitField('Login')
 
-from wtforms import HiddenField
-
-from wtforms import SelectField, BooleanField
 
 class ProductUploadForm(FlaskForm):
     id = HiddenField('Product ID')
@@ -102,3 +99,14 @@ class BlogPostForm(FlaskForm):
 class CommentForm(FlaskForm):
     body = TextAreaField('Comment', validators=[DataRequired(), Length(min=1, max=1000)])
     submit = SubmitField('Post Comment')
+
+
+class CouponForm(FlaskForm):
+    code = StringField('Coupon Code', validators=[DataRequired(), Length(min=3, max=50)], render_kw={"placeholder": "e.g., SAVE20"})
+    discount_percent = FloatField('Discount Percent', validators=[DataRequired(), NumberRange(min=0, max=100)], render_kw={"placeholder": "e.g., 20"})
+    max_discount_amount = FloatField('Max Discount Amount (optional)', validators=[Optional()], render_kw={"placeholder": "e.g., 500"})
+    max_uses_per_user = IntegerField('Max Uses Per User (optional)', validators=[Optional(), NumberRange(min=1)], render_kw={"placeholder": "Leave empty for unlimited"})
+    max_total_uses = IntegerField('Max Total Uses (optional)', validators=[Optional(), NumberRange(min=1)], render_kw={"placeholder": "Leave empty for unlimited"})
+    expiry_date = DateTimeLocalField('Expiry Date (optional)', validators=[Optional()], format='%Y-%m-%dT%H:%M')
+    is_active = BooleanField('Active')
+    submit = SubmitField('Save Coupon')

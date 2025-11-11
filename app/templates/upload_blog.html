@@ -7,6 +7,12 @@
     <h2 class="text-2xl font-bold text-primary mb-4">{% if post %}Edit{% else %}Create{% endif %} Blog Post</h2>
     <form method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
+        <style>
+            /* Ensure the EasyMDE toolbar/container doesn't accidentally overlay form actions on small screens */
+            .editor-toolbar, .EasyMDEContainer, .easyMDE-container { z-index: 1 !important; }
+            /* Make the submit button sit above editor/toolbars to ensure it's clickable on mobile */
+            .form-submit { position: relative; z-index: 9999; }
+        </style>
         <div class="mb-3">
             {{ form.title.label(class_='block text-sm font-medium text-gray-700') }}
             {{ form.title(class_='w-full border rounded p-2') }}
@@ -28,7 +34,7 @@
             {{ form.status(class_='w-full border rounded p-2') }}
         </div>
         <div>
-            {{ form.submit(class_='bg-primary text-white px-4 py-2 rounded') }}
+            {{ form.submit(class_='bg-primary text-white px-4 py-2 rounded form-submit') }}
         </div>
     </form>
 
@@ -39,8 +45,44 @@
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 var textarea = document.getElementById('post-body');
+                var editor = null;
                 if (textarea) {
-                    new EasyMDE({ element: textarea, spellChecker: false, autosave: { enabled: true, uniqueId: 'blog-post' } });
+                    // Remove HTML5 'required' attribute on the raw textarea which EasyMDE hides.
+                    // When a required control is hidden (display:none) the browser throws
+                    // "An invalid form control is not focusable" on submit. We'll perform
+                    // validation ourselves against the editor content instead.
+                    textarea.removeAttribute('required');
+
+                    editor = new EasyMDE({ element: textarea, spellChecker: false, autosave: { enabled: true, uniqueId: 'blog-post' } });
+                }
+
+                // Attach form submit handler to validate editor content and sync back to textarea
+                var form = textarea ? textarea.closest('form') : document.querySelector('form');
+                if (form && editor) {
+                    form.addEventListener('submit', function(e) {
+                        try {
+                            var content = editor.value() || '';
+                            if (content.trim().length < 10) {
+                                // Prevent submission and focus editor so user can fix it
+                                e.preventDefault();
+                                alert('Post body must be at least 10 characters.');
+                                // Try to focus the editor (CodeMirror instance)
+                                if (editor.codemirror) {
+                                    editor.codemirror.focus();
+                                }
+                                return false;
+                            }
+
+                            // Copy editor content into the textarea so server receives it.
+                            textarea.value = content;
+
+                            // Ensure the textarea is not disabled (disabled fields aren't submitted)
+                            textarea.removeAttribute('disabled');
+                            // Allow submit to proceed
+                        } catch (err) {
+                            console.warn('Editor submit validation failed', err);
+                        }
+                    });
                 }
             } catch (e) {
                 console.warn('EasyMDE init failed', e);

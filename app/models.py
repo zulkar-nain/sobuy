@@ -55,6 +55,8 @@ class Order(db.Model):
     bkash_number = db.Column(db.String(50), nullable=True)  # The customer-provided sending number
     delivery_type = db.Column(db.String(50), nullable=True)
     delivery_fee = db.Column(db.Float, nullable=True, default=0.0)
+    coupon_id = db.Column(db.Integer, db.ForeignKey('coupon.id', name='fk_order_coupon_id'), nullable=True)  # Applied coupon
+    discount_amount = db.Column(db.Float, nullable=True, default=0.0)  # Actual discount applied
     status = db.Column(db.String(20), nullable=False, default='Pending')  # Pending, Processing, Shipped, Completed, Cancelled
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
@@ -104,6 +106,7 @@ class HomeSliderImage(db.Model):
 class BlogPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(250), unique=True, nullable=True, index=True)
     body = db.Column(db.Text, nullable=False)
     image_url = db.Column(db.String(300), nullable=True)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
@@ -156,3 +159,30 @@ class NewsletterSubscriber(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), nullable=False, unique=True, index=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+
+class Coupon(db.Model):
+    """Discount coupons that customers can apply at checkout."""
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), nullable=False, unique=True, index=True)
+    discount_percent = db.Column(db.Float, nullable=False, default=0.0)  # percentage discount (0-100)
+    max_discount_amount = db.Column(db.Float, nullable=True)  # maximum discount in currency (optional cap)
+    max_uses_per_user = db.Column(db.Integer, nullable=True)  # how many times a single user can use it (None = unlimited)
+    max_total_uses = db.Column(db.Integer, nullable=True)  # total usage limit across all users (None = unlimited)
+    total_uses = db.Column(db.Integer, nullable=False, default=0)  # current total usage count
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    expiry_date = db.Column(db.DateTime, nullable=True)  # None = no expiry
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+
+class CouponUsage(db.Model):
+    """Tracks individual coupon usage by users."""
+    id = db.Column(db.Integer, primary_key=True)
+    coupon_id = db.Column(db.Integer, db.ForeignKey('coupon.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=True)  # linked order (if available)
+    used_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
+    # relationships
+    coupon = db.relationship('Coupon', backref=db.backref('usages', lazy='dynamic'))
+    user = db.relationship('User', backref=db.backref('coupon_usages', lazy='dynamic'))

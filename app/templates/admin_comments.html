@@ -21,7 +21,7 @@
                 {% for c in comments %}
                 <tr class="border-b align-top">
                     <td class="px-4 py-2">#{{ c.id }}</td>
-                    <td class="px-4 py-2"><a href="{{ url_for('main.blog_detail', post_id=c.post_id) }}">View post</a></td>
+                    <td class="px-4 py-2">{% if c.post_slug %}<a href="{{ url_for('main.blog_detail', slug=c.post_slug) }}">View post</a>{% else %}N/A{% endif %}</td>
                     <td class="px-4 py-2">{{ c.username or 'User' }}</td>
                     <td class="px-4 py-2">{{ c.body }}</td>
                     <td class="px-4 py-2">{{ c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '' }}</td>

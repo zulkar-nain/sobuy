@@ -10,7 +10,7 @@ from app.models import (
     OTPToken, BlogPost, BlogComment, BlogLike, BlogVisit, BkashNumber
 )
 from app.models import DeliveryFee
-from app.utils import render_markdown_safe
+from app.utils import render_markdown_safe, safe_admin_flash, generate_slug
 from app.forms import (
     LoginForm, ProductUploadForm, PaymentForm, RegistrationForm, CheckoutForm,
     ProfileForm, ChangePasswordForm, OTPForm, BlogPostForm, CommentForm
@@ -336,7 +336,7 @@ def admin_ban_user(user_id):
         return redirect(url_for('main.admin_users'))
     user.is_banned = True
     db.session.commit()
-    flash(f'User {user.username} has been banned.')
+    safe_admin_flash(f'User {user.username} has been banned.', display=f'User {user.username} has been banned.')
     return redirect(url_for('main.admin_users'))
 
 
@@ -348,7 +348,7 @@ def admin_unban_user(user_id):
     user = User.query.get_or_404(user_id)
     user.is_banned = False
     db.session.commit()
-    flash(f'User {user.username} has been unbanned.')
+    safe_admin_flash(f'User {user.username} has been unbanned.', display=f'User {user.username} has been unbanned.')
     return redirect(url_for('main.admin_users'))
 
 
@@ -364,7 +364,7 @@ def admin_delete_user(user_id):
         return redirect(url_for('main.admin_users'))
     db.session.delete(user)
     db.session.commit()
-    flash(f'User {user.username} has been deleted.')
+    safe_admin_flash(f'User {user.username} has been deleted.', display=f'User {user.username} has been deleted.')
     return redirect(url_for('main.admin_users'))
 
 
@@ -427,7 +427,154 @@ def admin_subscribers_export():
         return redirect(url_for('main.admin_subscribers'))
 
 
-@main.route('/sitemap.xml', methods=['GET'])
+# ====================== COUPON MANAGEMENT ======================
+
+@main.route('/admin/coupons')
+@login_required
+def admin_coupons():
+    """Admin page to manage discount coupons."""
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.index'))
+    try:
+        from app.models import Coupon
+        coupons = Coupon.query.order_by(Coupon.created_at.desc()).all()
+    except Exception:
+        current_app.logger.exception('Failed to load coupons')
+        coupons = []
+    return render_template('admin_coupons.html', coupons=coupons)
+
+
+@main.route('/admin/coupons/create', methods=['GET', 'POST'])
+@login_required
+def admin_coupon_create():
+    """Create a new coupon."""
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.index'))
+    
+    from app.forms import CouponForm
+    from app.models import Coupon
+    
+    form = CouponForm()
+    if form.validate_on_submit():
+        try:
+            # Check if code already exists
+            existing = Coupon.query.filter_by(code=form.code.data.strip().upper()).first()
+            if existing:
+                flash('A coupon with this code already exists.', 'danger')
+                return render_template('admin_coupon_form.html', form=form, is_edit=False)
+            
+            coupon = Coupon(
+                code=form.code.data.strip().upper(),
+                discount_percent=form.discount_percent.data,
+                max_discount_amount=form.max_discount_amount.data,
+                max_uses_per_user=form.max_uses_per_user.data,
+                max_total_uses=form.max_total_uses.data,
+                expiry_date=form.expiry_date.data,
+                is_active=form.is_active.data
+            )
+            db.session.add(coupon)
+            db.session.commit()
+            safe_admin_flash(f'Coupon created: {coupon.code}', 'Coupon created successfully.')
+            return redirect(url_for('main.admin_coupons'))
+        except Exception:
+            current_app.logger.exception('Failed to create coupon')
+            db.session.rollback()
+            flash('Failed to create coupon.', 'danger')
+    
+    return render_template('admin_coupon_form.html', form=form, is_edit=False)
+
+
+@main.route('/admin/coupons/<int:coupon_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_coupon_edit(coupon_id):
+    """Edit an existing coupon."""
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.index'))
+    
+    from app.forms import CouponForm
+    from app.models import Coupon
+    
+    coupon = Coupon.query.get_or_404(coupon_id)
+    form = CouponForm(obj=coupon)
+    
+    if form.validate_on_submit():
+        try:
+            # Check if code change conflicts with existing
+            if form.code.data.strip().upper() != coupon.code:
+                existing = Coupon.query.filter_by(code=form.code.data.strip().upper()).first()
+                if existing:
+                    flash('A coupon with this code already exists.', 'danger')
+                    return render_template('admin_coupon_form.html', form=form, is_edit=True, coupon=coupon)
+            
+            coupon.code = form.code.data.strip().upper()
+            coupon.discount_percent = form.discount_percent.data
+            coupon.max_discount_amount = form.max_discount_amount.data
+            coupon.max_uses_per_user = form.max_uses_per_user.data
+            coupon.max_total_uses = form.max_total_uses.data
+            coupon.expiry_date = form.expiry_date.data
+            coupon.is_active = form.is_active.data
+            
+            db.session.commit()
+            safe_admin_flash(f'Coupon updated: {coupon.code}', 'Coupon updated successfully.')
+            return redirect(url_for('main.admin_coupons'))
+        except Exception:
+            current_app.logger.exception('Failed to update coupon')
+            db.session.rollback()
+            flash('Failed to update coupon.', 'danger')
+    
+    return render_template('admin_coupon_form.html', form=form, is_edit=True, coupon=coupon)
+
+
+@main.route('/admin/coupons/<int:coupon_id>/delete', methods=['POST'])
+@login_required
+def admin_coupon_delete(coupon_id):
+    """Delete a coupon."""
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.index'))
+    
+    try:
+        from app.models import Coupon
+        coupon = Coupon.query.get_or_404(coupon_id)
+        code = coupon.code
+        db.session.delete(coupon)
+        db.session.commit()
+        safe_admin_flash(f'Coupon deleted: {code}', 'Coupon deleted successfully.')
+    except Exception:
+        current_app.logger.exception('Failed to delete coupon')
+        db.session.rollback()
+        flash('Failed to delete coupon.', 'danger')
+    
+    return redirect(url_for('main.admin_coupons'))
+
+
+@main.route('/admin/coupons/<int:coupon_id>/toggle', methods=['POST'])
+@login_required
+def admin_coupon_toggle(coupon_id):
+    """Toggle coupon active status."""
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.index'))
+    
+    try:
+        from app.models import Coupon
+        coupon = Coupon.query.get_or_404(coupon_id)
+        coupon.is_active = not coupon.is_active
+        db.session.commit()
+        status = 'activated' if coupon.is_active else 'deactivated'
+        safe_admin_flash(f'Coupon {status}: {coupon.code}', f'Coupon {status}.')
+    except Exception:
+        current_app.logger.exception('Failed to toggle coupon status')
+        db.session.rollback()
+        flash('Failed to toggle coupon status.', 'danger')
+    
+    return redirect(url_for('main.admin_coupons'))
+
+
+
 def sitemap():
     """Generate a sitemap including product detail and a few static pages."""
     try:
@@ -443,6 +590,13 @@ def sitemap():
         for p in Product.query.filter_by(status='active').all():
             try:
                 pages.append(url_for('main.product_detail', product_id=p.id, _external=True))
+            except Exception:
+                continue
+
+        # blog posts
+        for post in BlogPost.query.filter_by(status='published').all():
+            try:
+                pages.append(url_for('main.blog_detail', slug=post.slug, _external=True))
             except Exception:
                 continue
 
@@ -502,7 +656,9 @@ def update_order_status(order_id):
 
     order.status = new_status
     db.session.commit()
-    flash(f'Order #{order.id} status updated to {new_status}.')
+    # Record full detail in server logs and flash an admin-only message
+    safe_admin_flash(f'Order #{order.id} status updated from {old_status} to {new_status}.',
+                     display=f'Order #{order.id} status updated to {new_status}.')
 
     # send emails on specific transitions
     try:
@@ -826,7 +982,12 @@ def edit_product(product_id):
             # report which images were actually removed from the product
             removed_actual = [r for r in initial_saved if r not in saved_urls]
             if removed_actual:
-                flash(f'Removed images: {", ".join(removed_actual)}')
+                # Do NOT flash removed image paths to users. Keep only server-side logs.
+                try:
+                    removed_names = [r.split('/')[-1] for r in removed_actual]
+                except Exception:
+                    removed_names = removed_actual
+                # Log the removal for admins/debugging but do not surface the filename/path in UI
                 current_app.logger.info('Removed images for product %s: %s', product_id, removed_actual)
 
         files = request.files.getlist('image')
@@ -919,9 +1080,16 @@ def blog_list():
     return render_template('blog_list.html', posts=posts)
 
 
-@main.route('/blog/<int:post_id>', methods=['GET', 'POST'])
-def blog_detail(post_id):
+@main.route('/blog/<int:post_id>')
+def blog_detail_redirect(post_id):
+    """Redirect old numeric blog post IDs to slug-based URLs for backward compatibility."""
     post = BlogPost.query.get_or_404(post_id)
+    return redirect(url_for('main.blog_detail', slug=post.slug), code=301)
+
+
+@main.route('/blog/<slug>', methods=['GET', 'POST'])
+def blog_detail(slug):
+    post = BlogPost.query.filter_by(slug=slug).first_or_404()
     # increment visit count
     try:
         bv = BlogVisit.query.filter_by(post_id=post.id).first()
@@ -1014,10 +1182,10 @@ def blog_detail(post_id):
     return render_template('blog_detail.html', post=post, post_html=post_html, toc_html=toc_html, comments=comments, like_count=like_count, user_liked=user_liked, form=form, visit_count=visit_count, reading_minutes=reading_minutes, author_name=author_name, related=related, featured_products=featured_products)
 
 
-@main.route('/blog/<int:post_id>/comment', methods=['POST'])
+@main.route('/blog/<slug>/comment', methods=['POST'])
 @login_required
-def post_comment(post_id):
-    post = BlogPost.query.get_or_404(post_id)
+def post_comment(slug):
+    post = BlogPost.query.filter_by(slug=slug).first_or_404()
     form = CommentForm()
     if form.validate_on_submit():
         comment = BlogComment(post_id=post.id, user_id=current_user.id, body=form.body.data)
@@ -1026,13 +1194,13 @@ def post_comment(post_id):
         flash('Your comment has been posted.')
     else:
         flash('Could not post comment. Ensure the comment is not empty.')
-    return redirect(url_for('main.blog_detail', post_id=post.id))
+    return redirect(url_for('main.blog_detail', slug=post.slug))
 
 
-@main.route('/blog/<int:post_id>/like', methods=['POST'])
+@main.route('/blog/<slug>/like', methods=['POST'])
 @login_required
-def toggle_like(post_id):
-    post = BlogPost.query.get_or_404(post_id)
+def toggle_like(slug):
+    post = BlogPost.query.filter_by(slug=slug).first_or_404()
     existing = BlogLike.query.filter_by(post_id=post.id, user_id=current_user.id).first()
     if existing:
         db.session.delete(existing)
@@ -1043,7 +1211,7 @@ def toggle_like(post_id):
         db.session.add(like)
         db.session.commit()
         flash('You liked the post.')
-    return redirect(url_for('main.blog_detail', post_id=post.id))
+    return redirect(url_for('main.blog_detail', slug=post.slug))
 
 
 @main.route('/admin/blogs')
@@ -1095,7 +1263,8 @@ def admin_create_blog():
             file.save(filepath)
             image_url = f"/static/uploads/{unique}"
 
-        post = BlogPost(title=form.title.data, body=form.body.data, image_url=image_url, author_id=current_user.id, status=form.status.data)
+        slug = generate_slug(form.title.data, BlogPost)
+        post = BlogPost(title=form.title.data, slug=slug, body=form.body.data, image_url=image_url, author_id=current_user.id, status=form.status.data)
         db.session.add(post)
         db.session.commit()
         flash('Blog post created.')
@@ -1113,6 +1282,7 @@ def admin_edit_blog(post_id):
     form = BlogPostForm(obj=post)
     if form.validate_on_submit():
         post.title = form.title.data
+        post.slug = generate_slug(form.title.data, BlogPost, existing_id=post.id)
         post.body = form.body.data
         post.status = form.status.data
         file = request.files.get('image')
@@ -1175,7 +1345,12 @@ def admin_comments():
             username = u.username if u else 'User'
         except Exception:
             username = 'User'
-        comments.append({'id': c.id, 'post_id': c.post_id, 'body': c.body, 'created_at': c.created_at, 'username': username})
+        try:
+            post = BlogPost.query.get(c.post_id)
+            post_slug = post.slug if post else None
+        except Exception:
+            post_slug = None
+        comments.append({'id': c.id, 'post_id': c.post_id, 'post_slug': post_slug, 'body': c.body, 'created_at': c.created_at, 'username': username})
     return render_template('admin_comments.html', comments=comments)
 
 
@@ -1282,9 +1457,10 @@ def cart():
     # handle POST when user selects a delivery option
     if request.method == 'POST':
         sel = (request.form.get('delivery_option') or '').strip()
+        coupon_data = session.get('coupon')
         if not sel:
             flash('Please select a delivery option before proceeding to checkout.')
-            return render_template('cart.html', cart=detailed_cart, total_amount=total_amount, fees=fees, selected=session.get('delivery'))
+            return render_template('cart.html', cart=detailed_cart, total_amount=total_amount, fees=fees, selected=session.get('delivery'), coupon=coupon_data)
         # find fee row
         chosen = None
         for f in fees:
@@ -1293,11 +1469,14 @@ def cart():
                 break
         if not chosen:
             flash('Invalid delivery option selected.')
-            return render_template('cart.html', cart=detailed_cart, total_amount=total_amount, fees=fees, selected=session.get('delivery'))
+            return render_template('cart.html', cart=detailed_cart, total_amount=total_amount, fees=fees, selected=session.get('delivery'), coupon=coupon_data)
         session['delivery'] = {'key': chosen.key, 'label': chosen.label, 'amount': float(chosen.amount)}
         return redirect(url_for('main.checkout'))
 
-    return render_template('cart.html', cart=detailed_cart, total_amount=total_amount, fees=fees, selected=session.get('delivery'))
+    # Get applied coupon from session
+    coupon_data = session.get('coupon')
+
+    return render_template('cart.html', cart=detailed_cart, total_amount=total_amount, fees=fees, selected=session.get('delivery'), coupon=coupon_data)
 
 
 @main.route('/cart/set-delivery', methods=['POST'])
@@ -1358,7 +1537,132 @@ def set_delivery_ajax():
     })
 
 
-@main.route('/checkout', methods=['GET', 'POST'])
+@main.route('/cart/apply-coupon', methods=['POST'])
+def apply_coupon():
+    """Apply a coupon code to the current cart session."""
+    if not current_user.is_authenticated:
+        return jsonify({'success': False, 'error': 'Please log in to use coupons.'}), 401
+    
+    try:
+        data = request.get_json(force=True) if request.is_json else request.form
+    except Exception:
+        data = request.form
+    
+    code = (data.get('code') or '').strip().upper()
+    if not code:
+        return jsonify({'success': False, 'error': 'Please enter a coupon code.'}), 400
+    
+    from app.models import Coupon, CouponUsage
+    
+    # Find coupon
+    coupon = Coupon.query.filter_by(code=code).first()
+    if not coupon:
+        return jsonify({'success': False, 'error': 'Invalid coupon code.'}), 400
+    
+    # Validate coupon
+    if not coupon.is_active:
+        return jsonify({'success': False, 'error': 'This coupon is not active.'}), 400
+    
+    if coupon.expiry_date and datetime.utcnow() > coupon.expiry_date:
+        return jsonify({'success': False, 'error': 'This coupon has expired.'}), 400
+    
+    # Check total usage limit
+    if coupon.max_total_uses and coupon.total_uses >= coupon.max_total_uses:
+        return jsonify({'success': False, 'error': 'This coupon has reached its usage limit.'}), 400
+    
+    # Check per-user usage limit
+    if coupon.max_uses_per_user:
+        user_usage_count = CouponUsage.query.filter_by(
+            coupon_id=coupon.id,
+            user_id=current_user.id
+        ).count()
+        if user_usage_count >= coupon.max_uses_per_user:
+            return jsonify({'success': False, 'error': 'You have already used this coupon the maximum number of times.'}), 400
+    
+    # Calculate discount
+    cart = session.get('cart', {}) or {}
+    subtotal = 0.0
+    for composite_key, quantity in cart.items():
+        try:
+            pid_str, _ = composite_key.split(':', 1)
+            pid = int(pid_str)
+        except Exception:
+            continue
+        product = Product.query.get(pid)
+        if not product:
+            continue
+        subtotal += (product.price * quantity)
+    
+    if subtotal <= 0:
+        return jsonify({'success': False, 'error': 'Your cart is empty.'}), 400
+    
+    discount_amount = (subtotal * coupon.discount_percent) / 100.0
+    
+    # Apply max discount cap if set
+    if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
+        discount_amount = coupon.max_discount_amount
+    
+    discount_amount = round(discount_amount, 2)
+    
+    # Store coupon in session
+    session['coupon'] = {
+        'id': coupon.id,
+        'code': coupon.code,
+        'discount_percent': coupon.discount_percent,
+        'discount_amount': discount_amount
+    }
+    
+    # Recalculate totals
+    delivery = session.get('delivery', {})
+    delivery_amount = float(delivery.get('amount', 0.0)) if delivery else 0.0
+    grand_total = subtotal - discount_amount + delivery_amount
+    
+    return jsonify({
+        'success': True,
+        'coupon': {
+            'code': coupon.code,
+            'discount_percent': coupon.discount_percent,
+            'discount_amount': discount_amount
+        },
+        'subtotal': round(subtotal, 2),
+        'discount_amount': round(discount_amount, 2),
+        'delivery_amount': round(delivery_amount, 2),
+        'grand_total': round(grand_total, 2)
+    })
+
+
+@main.route('/cart/remove-coupon', methods=['POST'])
+def remove_coupon():
+    """Remove the applied coupon from session."""
+    session.pop('coupon', None)
+    
+    # Recalculate totals
+    cart = session.get('cart', {}) or {}
+    subtotal = 0.0
+    for composite_key, quantity in cart.items():
+        try:
+            pid_str, _ = composite_key.split(':', 1)
+            pid = int(pid_str)
+        except Exception:
+            continue
+        product = Product.query.get(pid)
+        if not product:
+            continue
+        subtotal += (product.price * quantity)
+    
+    delivery = session.get('delivery', {})
+    delivery_amount = float(delivery.get('amount', 0.0)) if delivery else 0.0
+    grand_total = subtotal + delivery_amount
+    
+    return jsonify({
+        'success': True,
+        'subtotal': round(subtotal, 2),
+        'delivery_amount': round(delivery_amount, 2),
+        'grand_total': round(grand_total, 2)
+    })
+
+
+
 @login_required
 def checkout():
     form = CheckoutForm()
@@ -1434,6 +1738,15 @@ def checkout():
                 'color': color or None
             })
 
+        # Get coupon discount from session if applied
+        coupon_data = session.get('coupon')
+        discount_amount = 0.0
+        coupon_id = None
+        
+        if coupon_data:
+            coupon_id = coupon_data.get('id')
+            discount_amount = coupon_data.get('discount_amount', 0.0)
+
         # create order record
         order = Order(
             user_id=current_user.id,
@@ -1442,7 +1755,9 @@ def checkout():
             trx_id=form.trx_id.data if (form.payment_method.data or '').lower() == 'bkash' else None,
             bkash_number=form.bkash_number.data if (form.payment_method.data or '').lower() == 'bkash' else None,
             delivery_type=delivery.get('key') if delivery else None,
-            delivery_fee=delivery.get('amount') if delivery else 0.0
+            delivery_fee=delivery.get('amount') if delivery else 0.0,
+            coupon_id=coupon_id,
+            discount_amount=discount_amount
         )
         # If requested, save phone/address to user's profile (only set if missing)
         try:
@@ -1473,6 +1788,28 @@ def checkout():
         # commit order and items together
         db.session.commit()
 
+        # Track coupon usage if a coupon was applied
+        if coupon_id:
+            try:
+                from app.models import Coupon, CouponUsage
+                coupon = Coupon.query.get(coupon_id)
+                if coupon:
+                    # Increment total usage count
+                    coupon.total_uses += 1
+                    db.session.add(coupon)
+                    
+                    # Create usage record
+                    usage = CouponUsage(
+                        coupon_id=coupon_id,
+                        user_id=current_user.id,
+                        order_id=order.id
+                    )
+                    db.session.add(usage)
+                    db.session.commit()
+            except Exception:
+                current_app.logger.exception('Failed to track coupon usage')
+                # Don't rollback the order - coupon tracking failure shouldn't break checkout
+
         # send email notifications (customer + admins)
         try:
             # prepare templates
@@ -1499,6 +1836,7 @@ def checkout():
         # clear cart
         session.pop('cart', None)
         session.pop('delivery', None)
+        session.pop('coupon', None)
         flash('Order placed successfully!')
 
         return redirect(url_for('main.order_invoice', order_id=order.id))
