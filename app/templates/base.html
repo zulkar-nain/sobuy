@@ -22,7 +22,7 @@
      {% block og_image %}{% endblock %}
      {# Prefer an explicit `page_og_image` variable set by child templates; if not present
          fall back to default social share image. #}
-     {% set _page_og_image = page_og_image if page_og_image is defined else url_for('static', filename='images/social-share.jpg', _external=True) %}
+     {% set _page_og_image = page_og_image if page_og_image is defined else url_for('static', filename='images/social-share.webp', _external=True) %}
 
      <!-- Open Graph -->
     <meta property="og:site_name" content="SoBuy">
