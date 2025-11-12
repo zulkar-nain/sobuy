@@ -53,17 +53,39 @@
 
         
 
-        <div class="mt-4 mb-4">
+        <!-- Order Summary -->
+        <div class="mt-6 bg-gray-50 p-4 rounded">
+            <h3 class="font-semibold mb-3">Order Summary</h3>
+            
             {% if delivery %}
-                <div class="text-sm text-gray-700">Delivery: <span class="font-medium">{{ delivery.label }}</span> — ৳{{ "%.2f"|format(delivery.amount) }}</div>
+                <div class="flex justify-between text-sm mb-2">
+                    <span>Subtotal:</span>
+                    <span>৳{{ "%.2f"|format(total_amount - delivery.amount + (coupon.discount_amount if coupon else 0)) }}</span>
+                </div>
+                
+                {% if coupon %}
+                <div class="flex justify-between text-sm text-green-600 mb-2">
+                    <span>Discount ({{ coupon.code }}):</span>
+                    <span>-৳{{ "%.2f"|format(coupon.discount_amount) }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="flex justify-between text-sm mb-2">
+                    <span>Delivery ({{ delivery.label }}):</span>
+                    <span>৳{{ "%.2f"|format(delivery.amount) }}</span>
+                </div>
+                
+                <div class="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
+                    <span>Total:</span>
+                    <span>৳{{ "%.2f"|format(total_amount) }}</span>
+                </div>
             {% else %}
                 <div class="text-sm text-red-600">No delivery option selected. Please go back to cart to choose one.</div>
             {% endif %}
         </div>
 
-        <div class="mt-6 flex justify-between items-center">
-            <div class="text-lg font-bold">Total: ৳{{ "%.2f"|format(total_amount) }}</div>
-            {{ form.submit(class_='bg-primary text-white px-4 py-2 rounded') }}
+        <div class="mt-6 flex justify-end">
+            {{ form.submit(class_='bg-primary text-white px-6 py-3 rounded hover:bg-accent') }}
         </div>
     </form>
 </div>

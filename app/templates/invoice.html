@@ -30,9 +30,10 @@
       <div>
         <h3 class="font-semibold">Payment</h3>
         <div class="text-sm text-gray-700 mt-2">
-          <div>Method: {{ order.payment_method }}</div>
+          <div>Method: {% if order.payment_method == 'cash_on_delivery' %}COD{% else %}{{ order.payment_method }}{% endif %}</div>
           {% if order.payment_method and order.payment_method|lower == 'bkash' %}
-            <div>Receiving number: {{ order.bkash_number or '—' }}</div>
+            <div>Receiving number: {{ active_bkash.number if active_bkash else '—' }}</div>
+            <div>Sending number: {{ order.bkash_number or '—' }}</div>
             <div>Transaction ID: {{ order.trx_id or '—' }}</div>
           {% endif %}
         </div>

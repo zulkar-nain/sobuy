@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
+{# Set blog post image for social media if it exists, otherwise use default #}
+{% if post.image_url %}
+    {% set page_og_image = post.image_url if post.image_url.startswith('http') else url_for('static', filename='uploads/' + post.image_url.lstrip('/static/uploads/'), _external=True) %}
+{% endif %}
+
 {% block title %}{{ post.title }} - SoBuy{% endblock %}
 
 {% block content %}

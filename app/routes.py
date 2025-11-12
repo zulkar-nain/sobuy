@@ -478,10 +478,15 @@ def admin_coupon_create():
             db.session.commit()
             safe_admin_flash(f'Coupon created: {coupon.code}', 'Coupon created successfully.')
             return redirect(url_for('main.admin_coupons'))
-        except Exception:
+        except Exception as e:
             current_app.logger.exception('Failed to create coupon')
             db.session.rollback()
-            flash('Failed to create coupon.', 'danger')
+            flash(f'Failed to create coupon: {str(e)}', 'danger')
+    elif request.method == 'POST':
+        # Form validation failed - show errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
     
     return render_template('admin_coupon_form.html', form=form, is_edit=False)
 
@@ -520,10 +525,15 @@ def admin_coupon_edit(coupon_id):
             db.session.commit()
             safe_admin_flash(f'Coupon updated: {coupon.code}', 'Coupon updated successfully.')
             return redirect(url_for('main.admin_coupons'))
-        except Exception:
+        except Exception as e:
             current_app.logger.exception('Failed to update coupon')
             db.session.rollback()
-            flash('Failed to update coupon.', 'danger')
+            flash(f'Failed to update coupon: {str(e)}', 'danger')
+    elif request.method == 'POST':
+        # Form validation failed - show errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
     
     return render_template('admin_coupon_form.html', form=form, is_edit=True, coupon=coupon)
 
@@ -574,7 +584,7 @@ def admin_coupon_toggle(coupon_id):
     return redirect(url_for('main.admin_coupons'))
 
 
-
+@main.route('/sitemap.xml')
 def sitemap():
     """Generate a sitemap including product detail and a few static pages."""
     try:
@@ -675,6 +685,33 @@ def update_order_status(order_id):
         current_app.logger.exception('Failed to send order status change email')
 
     return redirect(url_for('main.admin_dashboard'))
+
+
+@main.route('/admin/order/<int:order_id>/delete', methods=['POST'])
+@login_required
+def delete_order(order_id):
+    if not current_user.is_admin:
+        flash('You do not have permission to perform this action.')
+        return redirect(url_for('main.admin_dashboard'))
+
+    order = Order.query.get_or_404(order_id)
+    
+    try:
+        # Delete associated order items first
+        OrderItem.query.filter_by(order_id=order.id).delete()
+        
+        # Delete the order
+        db.session.delete(order)
+        db.session.commit()
+        
+        safe_admin_flash(f'Order #{order_id} has been deleted successfully.',
+                         display=f'Order #{order_id} deleted.')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception(f'Failed to delete order #{order_id}')
+        flash('Failed to delete order. Please try again.')
+    
+    return redirect(url_for('main.admin_orders'))
 
 
 @main.route('/admin/products')
@@ -1526,12 +1563,20 @@ def set_delivery_ajax():
         subtotal += (product.price * quantity)
 
     delivery_amount = float(chosen.amount)
-    grand_total = subtotal + delivery_amount
+    
+    # Get coupon discount from session if applied
+    coupon_data = session.get('coupon')
+    discount_amount = 0.0
+    if coupon_data:
+        discount_amount = float(coupon_data.get('discount_amount', 0.0))
+    
+    grand_total = subtotal - discount_amount + delivery_amount
 
     return jsonify({
         'success': True,
         'delivery': {'key': chosen.key, 'label': chosen.label, 'amount': delivery_amount},
         'subtotal': round(subtotal, 2),
+        'discount_amount': round(discount_amount, 2),
         'delivery_amount': round(delivery_amount, 2),
         'grand_total': round(grand_total, 2)
     })
@@ -1662,7 +1707,7 @@ def remove_coupon():
     })
 
 
-
+@main.route('/checkout', methods=['GET', 'POST'])
 @login_required
 def checkout():
     form = CheckoutForm()
@@ -1705,6 +1750,15 @@ def checkout():
     if not delivery:
         flash('Please choose a delivery option from the cart before proceeding to checkout.')
         return redirect(url_for('main.cart'))
+
+    # Get coupon discount from session if applied
+    coupon_data = session.get('coupon')
+    discount_amount = 0.0
+    if coupon_data:
+        discount_amount = float(coupon_data.get('discount_amount', 0.0))
+    
+    # Subtract discount from total
+    total_amount -= discount_amount
 
     # add delivery fee to total amount
     try:
@@ -1841,7 +1895,7 @@ def checkout():
 
         return redirect(url_for('main.order_invoice', order_id=order.id))
 
-    return render_template('checkout.html', form=form, total_amount=total_amount, active_bkash=active_bkash, delivery=delivery)
+    return render_template('checkout.html', form=form, total_amount=total_amount, active_bkash=active_bkash, delivery=delivery, coupon=coupon_data)
 
 
 @main.route('/create-admin')
@@ -1883,7 +1937,14 @@ def order_invoice(order_id):
     except Exception:
         delivery_label = None
 
-    return render_template('invoice.html', order=order, items=items, user=user, delivery_label=delivery_label)
+    # Get the active bkash number to display as receiving number
+    active_bkash = None
+    try:
+        active_bkash = BkashNumber.query.filter_by(active=True).first()
+    except Exception:
+        pass
+
+    return render_template('invoice.html', order=order, items=items, user=user, delivery_label=delivery_label, active_bkash=active_bkash)
 
 
 @main.route('/profile', methods=['GET', 'POST'])
