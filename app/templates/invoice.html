@@ -72,7 +72,10 @@
         {% set items_total = items_total + (it.unit_price * it.quantity) %}
       {% endfor %}
       <div class="text-sm">Items total: ৳{{ "%.2f"|format(items_total) }}</div>
-  <div class="text-sm">Delivery: {{ delivery_label or order.delivery_type or '—' }} — ৳{{ "%.2f"|format(order.delivery_fee or 0.0) }}</div>
+      {% if order.discount_amount and order.discount_amount > 0 %}
+        <div class="text-sm text-green-600">Discount{% if coupon %} ({{ coupon.code }}){% endif %}: -৳{{ "%.2f"|format(order.discount_amount) }}</div>
+      {% endif %}
+      <div class="text-sm">Delivery: {{ delivery_label or order.delivery_type or '—' }} — ৳{{ "%.2f"|format(order.delivery_fee or 0.0) }}</div>
       <div class="text-lg font-bold mt-2">Total: ৳{{ "%.2f"|format(order.total_amount) }}</div>
     </div>
 

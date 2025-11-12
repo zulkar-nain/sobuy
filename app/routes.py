@@ -1944,7 +1944,15 @@ def order_invoice(order_id):
     except Exception:
         pass
 
-    return render_template('invoice.html', order=order, items=items, user=user, delivery_label=delivery_label, active_bkash=active_bkash)
+    # Get coupon details if a coupon was used
+    coupon = None
+    if order.coupon_id:
+        try:
+            coupon = Coupon.query.get(order.coupon_id)
+        except Exception:
+            pass
+
+    return render_template('invoice.html', order=order, items=items, user=user, delivery_label=delivery_label, active_bkash=active_bkash, coupon=coupon)
 
 
 @main.route('/profile', methods=['GET', 'POST'])
