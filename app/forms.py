@@ -59,8 +59,8 @@ class CheckoutForm(FlaskForm):
     save_to_profile = BooleanField('Save to profile as my address')
     submit = SubmitField('Place Order')
 
-    def validate(self):
-        rv = FlaskForm.validate(self)
+    def validate(self, extra_validators=None):
+        rv = FlaskForm.validate(self, extra_validators=extra_validators)
         if not rv:
             return False
         pm = (self.payment_method.data or '').lower()
